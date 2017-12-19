@@ -1,1 +1,1 @@
-web: file-transferer
+web: file-transferer go run main.go
