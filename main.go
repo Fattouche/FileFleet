@@ -22,7 +22,7 @@ func getIP(conn net.Conn, ipAddresses chan string) {
 }
 
 func main() {
-	server, err := net.Listen("tcp", os.Getenv("PORT"))
+	server, err := net.Listen("tcp", ":"+os.Getenv("PORT"))
 	if err != nil {
 		panic(err)
 	}
