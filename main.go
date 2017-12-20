@@ -4,28 +4,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 )
 
-var ipAddresses chan (string)
+var ip string
 
 func getIP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got connection form peer1")
-	ipAddresses <- r.RemoteAddr
-	fmt.Println(r.RemoteAddr)
-	io.WriteString(w, r.RemoteAddr)
+	ip = r.RemoteAddr
+	w.Write([]byte(ip))
 }
 
 func sendIP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got connection form peer2")
-	fmt.Println(r.RemoteAddr)
-	ip := <-ipAddresses
 	io.WriteString(w, ip)
 }
 
 func main() {
-	ipAddresses = make(chan (string))
 	http.HandleFunc("/1", getIP)
 	http.HandleFunc("/2", sendIP)
-	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	fmt.Println("starting server")
+	fmt.Println(http.ListenAndServe("", nil))
 }
