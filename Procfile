@@ -1,1 +1,1 @@
-web: main
+web: P2P_FILETRANSFER
