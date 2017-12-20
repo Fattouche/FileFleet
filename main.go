@@ -10,12 +10,14 @@ import (
 var ipAddresses chan (string)
 
 func getIP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Got connection form peer1")
 	ipAddresses <- r.RemoteAddr
 	fmt.Println(r.RemoteAddr)
 	io.WriteString(w, r.RemoteAddr)
 }
 
 func sendIP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Got connection form peer2")
 	fmt.Println(r.RemoteAddr)
 	ip := <-ipAddresses
 	io.WriteString(w, ip)
