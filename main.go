@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"net/http"
 	"os"
 )
 
-func getIP(conn net.Conn, ipAddresses chan string) {
+/*func getIP(conn net.Conn, ipAddresses chan string) {
 	buff := make([]byte, 1)
 	conn.Read(buff)
 	fmt.Println("PACKET RECIEVED: ")
@@ -41,4 +41,18 @@ func main() {
 		//get IP address of peers
 		go getIP(connection, ipAddresses)
 	}
+}*/
+
+func getIP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.RemoteAddr)
+}
+
+func sendIP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.RemoteAddr)
+}
+
+func main() {
+	http.HandleFunc("/1", getIP)
+	http.HandleFunc("/2", sendIP)
+	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 }
