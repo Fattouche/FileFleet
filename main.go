@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 var ip string
@@ -23,5 +24,5 @@ func main() {
 	http.HandleFunc("/1", getIP)
 	http.HandleFunc("/2", sendIP)
 	fmt.Println("starting server")
-	fmt.Println(http.ListenAndServe("", nil))
+	fmt.Println(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 }
