@@ -42,16 +42,21 @@ func main() {
 		go getIP(connection, ipAddresses)
 	}
 }*/
+var ipAddresses chan (string)
 
 func getIP(w http.ResponseWriter, r *http.Request) {
+	ipAddresses <- r.RemoteAddr
 	fmt.Println(r.RemoteAddr)
 }
 
 func sendIP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.RemoteAddr)
+	ip := <-ipAddresses
+	w.Write([]byte(ip))
 }
 
 func main() {
+	ipAddresses = make(chan (string))
 	http.HandleFunc("/1", getIP)
 	http.HandleFunc("/2", sendIP)
 	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
