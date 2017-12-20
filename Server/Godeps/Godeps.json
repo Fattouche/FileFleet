@@ -1,6 +1,0 @@
-{
-	"ImportPath": "P2P_FileTransfer/Server",
-	"GoVersion": "go1.8",
-	"GodepVersion": "v79",
-	"Deps": []
-}
