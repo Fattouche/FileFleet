@@ -5,16 +5,24 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/websocket"
+)
+
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
 )
 
 var ip string
 
 func getIP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got connection form peer1")
+	ws, _ := upgrader.Upgrade(w, r, nil)
+	fmt.Println(ws.RemoteAddr().Network())
 	ip = r.Header.Get("X-forwarded-for")
-	m := make([]byte, 1000)
-	a, _ := r.Body.Read(m)
-	fmt.Println(string(m[:a]))
 	w.Write([]byte(ip))
 }
 
