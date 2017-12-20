@@ -11,7 +11,7 @@ var ip string
 
 func getIP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got connection form peer1")
-	ip = r.Header.Get("Host")
+	ip = r.Header.Get("X-forwarded-for")
 	w.Write([]byte(ip))
 }
 
