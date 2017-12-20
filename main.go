@@ -21,8 +21,16 @@ func getIP(conn net.Conn, ipAddresses chan string) {
 	}
 }
 
+func determineListenAddress() (string, error) {
+	port := os.Getenv("PORT")
+	if port == "" {
+		return "", fmt.Errorf("$PORT not set")
+	}
+	return ":" + port, nil
+}
+
 func main() {
-	server, err := net.Listen("tcp", "localhost:27000")
+	server, err := determineListenAddress()
 	if err != nil {
 		panic(err)
 	}
