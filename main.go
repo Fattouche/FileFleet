@@ -14,7 +14,7 @@ func getIP(conn net.Conn, ipAddresses chan string) {
 		peer1IP := conn.RemoteAddr()
 		fmt.Println(peer1IP.String())
 		ipAddresses <- peer1IP.String()
-	} else {
+	} else if string(buff) == "2" {
 		fmt.Println("got a connection from peer2!")
 		peer1IP := <-ipAddresses
 		conn.Write([]byte(peer1IP))
