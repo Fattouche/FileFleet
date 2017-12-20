@@ -2,5 +2,11 @@
 	"ImportPath": "P2P_File_Transferer",
 	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
-	"Deps": []
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.2.0-23-gcdedf21",
+			"Rev": "cdedf21e585dae942951e34d6defc3215b4280fa"
+		}
+	]
 }
