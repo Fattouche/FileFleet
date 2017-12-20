@@ -30,7 +30,12 @@ func determineListenAddress() (string, error) {
 }
 
 func main() {
-	server, err := determineListenAddress()
+	addr, err := determineListenAddress()
+	if err != nil {
+		panic(err)
+	}
+
+	server, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic(err)
 	}
