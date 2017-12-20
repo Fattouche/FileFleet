@@ -10,7 +10,7 @@ func getIP(conn net.Conn, ipAddresses chan string) {
 	buff := make([]byte, 1)
 	conn.Read(buff)
 	fmt.Println("PACKET RECIEVED: ")
-	fmt.Println(string(buff))
+	fmt.Println(conn.RemoteAddr().String())
 	if string(buff) == "1" {
 		fmt.Println("got a connection from peer1!")
 		peer1IP := conn.RemoteAddr()
