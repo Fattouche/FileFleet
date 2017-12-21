@@ -2,38 +2,42 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
+	"net"
 	"os"
-
-	"github.com/gorilla/websocket"
 )
 
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+func getIP(conn net.Conn, ipAddresses chan string) {
+	buff := make([]byte, 1)
+	conn.Read(buff)
+	fmt.Println(conn.RemoteAddr().String())
+	if string(buff) == "1" {
+		fmt.Println("got a connection from peer1!")
+		peer1IP := conn.RemoteAddr()
+		fmt.Println(peer1IP.String())
+		ipAddresses <- peer1IP.String()
+	} else if string(buff) == "2" {
+		fmt.Println("got a connection from peer2!")
+		peer1IP := <-ipAddresses
+		conn.Write([]byte(peer1IP))
 	}
-)
-
-var ip string
-
-func getIP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got connection form peer1")
-	ws, _ := upgrader.Upgrade(w, r, nil)
-	fmt.Println(ws.RemoteAddr().Network())
-	ip = r.Header.Get("X-forwarded-for")
-	w.Write([]byte(ip))
-}
-
-func sendIP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got connection form peer2")
-	io.WriteString(w, ip)
 }
 
 func main() {
-	http.HandleFunc("/1", getIP)
-	http.HandleFunc("/2", sendIP)
-	fmt.Println("starting server")
-	fmt.Println(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	server, err := net.Listen("tcp", "0.0.0.0:80")
+	if err != nil {
+		panic(err)
+	}
+	defer server.Close()
+	ipAddresses := make(chan string)
+	fmt.Println("Waiting for connections from peers")
+	for {
+		//Blocks waiting for a connection
+		connection, err := server.Accept()
+		if err != nil {
+			fmt.Println("Error: ", err)
+			os.Exit(1)
+		}
+		//get IP address of peers
+		go getIP(connection, ipAddresses)
+	}
 }

@@ -47,11 +47,13 @@ func sendFile(connection net.Conn) {
 //Want to send the IP to the centralized server so that both peers can establish
 //connection with eachother.
 func sendIP() string {
-	connection, err := net.Dial("tcp", "localhost:27000")
-	defer connection.Close()
+	connection, err := net.Dial("tcp", "ec2-18-221-131-33.us-east-2.compute.amazonaws.com:8080")
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
+	fmt.Println(connection.LocalAddr().String())
+	defer connection.Close()
 	connection.Write([]byte("1"))
 	return connection.LocalAddr().String()
 }

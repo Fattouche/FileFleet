@@ -47,15 +47,15 @@ func readFromPeer(ip string) {
 }
 
 func getIPFromServer() string {
-	connection, err := net.Dial("tcp", "localhost:27000")
+	connection, err := net.Dial("tcp", "ec2-18-221-131-33.us-east-2.compute.amazonaws.com:8080")
 	defer connection.Close()
 	if err != nil {
 		panic(err)
 	}
 	connection.Write([]byte("2"))
-	buff := make([]byte, 15)
-	connection.Read(buff)
-	ipAddress := string(buff)
+	buff := make([]byte, 30)
+	len, _ := connection.Read(buff)
+	ipAddress := string(buff[:len])
 	return ipAddress
 }
 
