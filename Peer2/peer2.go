@@ -12,10 +12,11 @@ const BUFFERSIZE = 5000
 
 func readFromPeer(ip string) {
 	connection, err := net.Dial("tcp", ip)
-	defer connection.Close()
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
+	defer connection.Close()
 	fmt.Println("Connected to server, start receiving the file name and file size")
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
@@ -47,11 +48,12 @@ func readFromPeer(ip string) {
 }
 
 func getIPFromServer() string {
-	connection, err := net.Dial("tcp", "ec2-18-221-131-33.us-east-2.compute.amazonaws.com:8080")
-	defer connection.Close()
+	connection, err := net.Dial("tcp", "ec2-18-221-157-96.us-east-2.compute.amazonaws.com:8080")
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
+	defer connection.Close()
 	connection.Write([]byte("2"))
 	buff := make([]byte, 30)
 	len, _ := connection.Read(buff)

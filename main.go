@@ -23,7 +23,7 @@ func getIP(conn net.Conn, ipAddresses chan string) {
 }
 
 func main() {
-	server, err := net.Listen("tcp", "0.0.0.0:80")
+	server, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
 		panic(err)
 	}
