@@ -8,47 +8,51 @@ import (
 )
 
 type Peer struct {
-	privIP   string
-	pubIP    string
-	name     string
-	friend   string
-	isSender string
+	PrivIP   string
+	PubIP    string
+	Name     string
+	Friend   string
+	FileName string
 }
 
 var peerMap map[string]*Peer
 
 func createPeer(len int, buff []byte, publicIP string) (*Peer, error) {
 	peer := new(Peer)
-	fmt.Println(string(buff[:len]))
 	err := json.Unmarshal(buff[:len], &peer)
-	fmt.Println(json.Marshal(peer))
 	if err != nil {
 		fmt.Println("Error in createPeer: " + err.Error())
 		return nil, err
 	}
-	peer.pubIP = publicIP
-	peerMap[peer.name] = peer
+	peer.PubIP = publicIP
+	peerMap[peer.Name] = peer
 	return peer, nil
 }
 
 func checkPeer(peer *Peer, server *net.UDPConn) {
-	addr, err := net.ResolveUDPAddr("udp4", peer.pubIP)
+	addr, err := net.ResolveUDPAddr("udp4", peer.PubIP)
 	if err != nil {
 		fmt.Println("Error in checkPeer: " + err.Error())
 	}
 	for {
-		if _, ok := peerMap[peer.friend]; ok {
-			if peer.isSender != "" || peerMap[peer.friend].isSender != "" {
+		if _, ok := peerMap[peer.Friend]; ok {
+			if !(peer.FileName == "" || peerMap[peer.Friend].FileName == "") {
 				fmt.Println("Error: Both peers trying to send a file")
 				server.WriteToUDP([]byte("0"), addr)
 				return
 			}
-			msg, err := json.Marshal(peer)
+			msgForPeer, err := json.Marshal(peerMap[peer.Friend])
+			msgForFriend, err := json.Marshal(peerMap[peer.Name])
 			if err != nil {
 				fmt.Println("Error marshalling in checkpeer: " + err.Error())
 			}
+			friendAddr, _ := net.ResolveUDPAddr("udp4", peerMap[peer.Friend].PubIP)
 			server.WriteToUDP([]byte("1"), addr)
-			server.WriteToUDP(msg, addr)
+			server.WriteToUDP(msgForPeer, addr)
+			server.WriteToUDP(msgForFriend, friendAddr)
+			
+			delete(peerMap,peer.Name)
+			delete(peerMap,peer.Friend)
 			return
 		}
 	}
@@ -83,7 +87,7 @@ func main() {
 			server.WriteToUDP([]byte("0"), addr)
 			continue
 		} else {
-			fmt.Println("Connecting " + peer.name + " and " + peer.friend)
+			fmt.Println("Connecting " + peer.Name + " and " + peer.Friend)
 			server.WriteToUDP([]byte("1"), addr)
 		}
 		go checkPeer(peer, server)
