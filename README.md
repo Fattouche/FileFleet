@@ -1,6 +1,8 @@
 # P2P_File_Transferer
 This repository was made to allow for simple and fast filetransfer without needing to upload or pay for any third party service. Since this is just used for file transfer, a peer will only connect to at most one other peer. 
 
+![](Images/sharing.png)
+
 *note - as of right now, the rendevousz server that is responsible for connecting peers is hosted on an EC2 instance. Therefore this service is not always available.
 
 ## Getting Started Usage
@@ -18,4 +20,4 @@ Due to the nature of peer to peer connections, the code requires 3 different com
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU General Public License v3.0 License - see the [LICENSE.md](LICENSE) file for details
