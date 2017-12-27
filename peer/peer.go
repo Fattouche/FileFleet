@@ -17,6 +17,12 @@ type Peer struct {
 	Name     string
 	Friend   string
 	FileName string
+	FileSize int64
+}
+
+type Packet struct {
+	SeqNo int
+	info  []byte
 }
 
 var friend Peer
@@ -24,18 +30,28 @@ var myPeerInfo *Peer
 
 const BUFFERSIZE = 5000
 
-func holePunch() {
-
+func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
+	connected := false
+	go func() {
+		for connected != true {
+			server.WriteToUDP([]byte("1"), addr)
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+	buff := make([]byte, 100)
+	for {
+		_, recvAddr, _ := server.ReadFromUDP(buff)
+		if recvAddr == addr {
+			connected = true
+			time.Sleep(time.Millisecond * 500)
+			return
+		}
+	}
 }
 
 //If in same network, dont need holepunching!
 func transferInsideNetwork(file *os.File) error {
 	if myPeerInfo.FileName != "" {
-		fileInfo, err := file.Stat()
-		if err != nil {
-			fmt.Println("Error: " + err.Error())
-			return err
-		}
 		addr, _ := net.ResolveTCPAddr("tcp", myPeerInfo.PrivIP)
 		server, err := net.ListenTCP("tcp", addr)
 		server.SetDeadline(time.Now().Add(time.Millisecond * 5000))
@@ -48,8 +64,6 @@ func transferInsideNetwork(file *os.File) error {
 		if err != nil {
 			return err
 		}
-		connection.Write([]byte(fileInfo.Name()))
-		connection.Write([]byte(strconv.Itoa(int(fileInfo.Size()))))
 		sendBuffer := make([]byte, BUFFERSIZE)
 		for {
 			_, err = file.Read(sendBuffer)
@@ -67,34 +81,88 @@ func transferInsideNetwork(file *os.File) error {
 			return err
 		}
 		defer connection.Close()
-		bufferFileName := make([]byte, 100)
-		bufferFileSize := make([]byte, 10)
-
-		len, err := connection.Read(bufferFileName)
-		fileName := string(bufferFileName[:len])
-		len, err = connection.Read(bufferFileSize)
-		fileSize, err := strconv.ParseInt(string(bufferFileSize), 10, 64)
-		if err != nil {
-			fmt.Println("Error: " + err.Error())
-		}
-		newFile, err := os.Create(fileName)
+		newFile, err := os.Create(friend.FileName)
 		defer newFile.Close()
 
 		var receivedBytes int64
 
 		for {
-			if (fileSize - receivedBytes) < BUFFERSIZE {
-				io.CopyN(newFile, connection, (fileSize - receivedBytes))
-				connection.Read(make([]byte, (receivedBytes+BUFFERSIZE)-fileSize))
+			if (friend.FileSize - receivedBytes) < BUFFERSIZE {
+				io.CopyN(newFile, connection, (friend.FileSize - receivedBytes))
+				connection.Read(make([]byte, (receivedBytes+BUFFERSIZE)-friend.FileSize))
 				break
 			}
 			io.CopyN(newFile, connection, BUFFERSIZE)
 			receivedBytes += BUFFERSIZE
 		}
 		fmt.Println("Received file completely from peer!")
-
 	}
 	return nil
+}
+
+func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
+	packet := new(Packet)
+	sendBuffer := make([]byte, BUFFERSIZE)
+	recvBuffer := make([]byte, 10)
+	byteSent := 0
+	var err error
+	go func() {
+		for {
+			_, err := file.ReadAt(sendBuffer, int64(byteSent))
+			if err == io.EOF {
+				break
+			}
+			packet.SeqNo = byteSent
+			packet.info = sendBuffer
+			msg, err := json.Marshal(packet)
+			if err != nil {
+				fmt.Println("Error: " + err.Error())
+			}
+			sent, _ := server.WriteToUDP(msg, addr)
+			byteSent += sent
+		}
+	}()
+	prevBytesReceived := 0
+	bytesRecieved := int64(0)
+	for {
+		server.ReadFromUDP(recvBuffer)
+		prevBytesReceived = int(bytesRecieved)
+		bytesRecieved, err = strconv.ParseInt(string(recvBuffer), 10, 64)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+		}
+		if int(bytesRecieved) == prevBytesReceived {
+			byteSent = int(bytesRecieved)
+		}
+	}
+}
+
+func receiveFile(server *net.UDPConn, addr *net.UDPAddr) {
+	recvBuffer := make([]byte, BUFFERSIZE+1000)
+	packet := new(Packet)
+
+	newFile, err := os.Create(friend.FileName)
+	if err != nil {
+		fmt.Println("Error: " + err.Error())
+	}
+	defer newFile.Close()
+
+	receivedBytes := int64(0)
+
+	for receivedBytes < friend.FileSize {
+		_, err := server.Read(recvBuffer)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+		}
+		json.Unmarshal(recvBuffer, &packet)
+		if int64(packet.SeqNo) != receivedBytes+BUFFERSIZE {
+			server.Write([]byte(strconv.Itoa(int(receivedBytes))))
+		} else {
+			newFile.Write(packet.info)
+			receivedBytes = int64(packet.SeqNo)
+		}
+	}
+	fmt.Println("Received file completely from peer!")
 }
 
 func transferFile(server *net.UDPConn) {
@@ -107,10 +175,17 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
-	err = transferInsideNetwork(file)
-	//succesful tcp transfer inside the network
-	if err == nil {
+
+	if transferInsideNetwork(file) == nil {
 		return
+	}
+
+	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
+	holePunch(server, addr)
+	if myPeerInfo.FileName != "" {
+		sendFile(server, file, addr)
+	} else {
+		receiveFile(server, addr)
 	}
 }
 
@@ -197,6 +272,14 @@ func main() {
 	myPeerInfo.Friend = os.Args[2]
 	if len(os.Args) == 4 {
 		myPeerInfo.FileName = os.Args[3]
+		transferFile, err := os.Open(myPeerInfo.FileName)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+			transferFile.Close()
+			panic(err)
+		}
+		fileInfo, _ := transferFile.Stat()
+		myPeerInfo.FileSize = fileInfo.Size()
 	}
 
 	machineIP, err := externalIP()

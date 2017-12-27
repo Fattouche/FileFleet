@@ -14,6 +14,7 @@ type Peer struct {
 	Name     string
 	Friend   string
 	FileName string
+	FileSize int64
 }
 
 var peerMap map[string]*Peer
