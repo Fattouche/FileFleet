@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
 type Peer struct {
@@ -35,24 +36,21 @@ func checkPeer(peer *Peer, server *net.UDPConn) {
 		fmt.Println("Error in checkPeer: " + err.Error())
 	}
 	for {
-		if _, ok := peerMap[peer.Friend]; ok {
+		if _, ok := peerMap[peer.Friend]; ok && peerMap[peer.Friend] != nil {
 			if !(peer.FileName == "" || peerMap[peer.Friend].FileName == "") {
 				fmt.Println("Error: Both peers trying to send a file")
 				server.WriteToUDP([]byte("0"), addr)
 				return
 			}
 			msgForPeer, err := json.Marshal(peerMap[peer.Friend])
-			msgForFriend, err := json.Marshal(peerMap[peer.Name])
 			if err != nil {
 				fmt.Println("Error marshalling in checkpeer: " + err.Error())
 			}
-			friendAddr, _ := net.ResolveUDPAddr("udp4", peerMap[peer.Friend].PubIP)
 			server.WriteToUDP([]byte("1"), addr)
 			server.WriteToUDP(msgForPeer, addr)
-			server.WriteToUDP(msgForFriend, friendAddr)
-			
-			delete(peerMap,peer.Name)
-			delete(peerMap,peer.Friend)
+
+			time.Sleep(time.Millisecond * 500)
+			delete(peerMap, peer.Name)
 			return
 		}
 	}

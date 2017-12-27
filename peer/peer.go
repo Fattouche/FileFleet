@@ -58,7 +58,7 @@ func transferInsideNetwork(file *os.File) error {
 			}
 			connection.Write(sendBuffer)
 		}
-		fmt.Println("File has been sent, closing connection!")
+		fmt.Println("File has been sent, closing connection with peer!")
 	} else {
 		localAddr, _ := net.ResolveTCPAddr("tcp", myPeerInfo.PrivIP)
 		dialer := &net.Dialer{Timeout: 5 * time.Second, LocalAddr: localAddr}
@@ -67,7 +67,6 @@ func transferInsideNetwork(file *os.File) error {
 			return err
 		}
 		defer connection.Close()
-		fmt.Println("Connected to server, start receiving the file name and file size")
 		bufferFileName := make([]byte, 100)
 		bufferFileSize := make([]byte, 10)
 
@@ -92,7 +91,7 @@ func transferInsideNetwork(file *os.File) error {
 			io.CopyN(newFile, connection, BUFFERSIZE)
 			receivedBytes += BUFFERSIZE
 		}
-		fmt.Println("Received file completely!")
+		fmt.Println("Received file completely from peer!")
 
 	}
 	return nil
