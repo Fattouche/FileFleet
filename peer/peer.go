@@ -28,7 +28,7 @@ type Packet struct {
 var friend Peer
 var myPeerInfo *Peer
 
-const BUFFERSIZE = 1000
+const BUFFERSIZE = 400
 
 func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	connected := false
