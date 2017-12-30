@@ -111,14 +111,7 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 	go func() {
 		for done == false {
 			len, err := file.ReadAt(sendBuffer, int64(packet.SeqNo))
-			if err == io.EOF {
-				time.Sleep(time.Millisecond * 1000)
-				if int64(packet.SeqNo) == myPeerInfo.FileSize {
-					done = true
-					fmt.Println("File sent!")
-				}
-			}
-			fmt.Println("read:", len)
+			fmt.Println("read: ", len)
 			packet.SeqNo += len
 			packet.Info = sendBuffer
 			msg, err := json.Marshal(&packet)
@@ -129,7 +122,7 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
 			}
-			time.Sleep(time.Millisecond * 1000)
+			time.Sleep(time.Millisecond * 100)
 		}
 		return
 	}()
@@ -142,6 +135,9 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 		fmt.Println("Recieved from server " + string(recvBuffer))
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
+		}
+		if bytesRecieved == myPeerInfo.FileSize {
+			done = true
 		}
 		if int(bytesRecieved) == prevBytesReceived {
 			fmt.Println("ByteSent is updated")
@@ -171,7 +167,9 @@ func receiveFile(server *net.UDPConn, addr *net.UDPAddr) {
 		if int64(packet.SeqNo) != receivedBytes+BUFFERSIZE {
 			if int64(packet.SeqNo) == friend.FileSize {
 				newFile.Write(packet.Info)
-				fmt.Println("receieved!")
+				server.WriteToUDP([]byte(strconv.Itoa(int(friend.FileSize))), addr)
+				server.WriteToUDP([]byte(strconv.Itoa(int(friend.FileSize))), addr)
+				fmt.Println("receieved entire file!")
 				return
 			}
 			server.WriteToUDP([]byte(strconv.Itoa(int(receivedBytes))), addr)
