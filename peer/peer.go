@@ -54,7 +54,7 @@ func transferInsideNetwork(file *os.File) error {
 	if myPeerInfo.FileName != "" {
 		addr, _ := net.ResolveTCPAddr("tcp", myPeerInfo.PrivIP)
 		server, err := net.ListenTCP("tcp", addr)
-		server.SetDeadline(time.Now().Add(time.Millisecond * 5000))
+		server.SetDeadline(time.Now().Add(time.Millisecond * 1000))
 		if err != nil {
 			fmt.Println("Error listetning: ", err)
 			return err
@@ -113,7 +113,7 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 			len, err := file.ReadAt(sendBuffer, int64(packet.SeqNo))
 			fmt.Println("read: ", len)
 			packet.SeqNo += len
-			packet.Info = sendBuffer
+			packet.Info = sendBuffer[:len]
 			msg, err := json.Marshal(&packet)
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
@@ -122,7 +122,7 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
 			}
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Microsecond * 1)
 		}
 		return
 	}()
