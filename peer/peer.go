@@ -28,7 +28,7 @@ type Packet struct {
 var friend Peer
 var myPeerInfo *Peer
 
-const BUFFERSIZE = 400
+const BUFFERSIZE = 1024
 
 func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	connected := false
@@ -75,7 +75,7 @@ func transferInsideNetwork(file *os.File) error {
 		fmt.Println("File has been sent, closing connection with peer!")
 	} else {
 		localAddr, _ := net.ResolveTCPAddr("tcp", myPeerInfo.PrivIP)
-		dialer := &net.Dialer{Timeout: 5 * time.Second, LocalAddr: localAddr}
+		dialer := &net.Dialer{Timeout: 1 * time.Second, LocalAddr: localAddr}
 		connection, err := dialer.Dial("tcp", friend.PrivIP)
 		if err != nil {
 			return err
@@ -191,7 +191,6 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
-
 	if transferInsideNetwork(file) == nil {
 		return
 	}
@@ -210,7 +209,7 @@ func getPeerInfo(server *net.UDPConn) {
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
-	serverAddr, err := net.ResolveUDPAddr("udp4", "18.217.212.81:8080")
+	serverAddr, err := net.ResolveUDPAddr("udp4", "18.221.47.86:8080")
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
