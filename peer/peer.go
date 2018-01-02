@@ -101,7 +101,7 @@ func transferInsideNetwork(file *os.File) error {
 	return nil
 }
 
-func sendFile(file *os.File, addr *net.UDPAddr) {
+func sendFile(file *os.File) {
 	sendBuffer := make([]byte, BUFFERSIZE)
 	var err error
 
@@ -116,7 +116,13 @@ func sendFile(file *os.File, addr *net.UDPAddr) {
 		if err == io.EOF {
 			break
 		}
-		conn.Write(sendBuffer)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+		}
+		_, err = conn.Write(sendBuffer)
+		if err != nil {
+			fmt.Println("Error: " + err.Error())
+		}
 	}
 	fmt.Println("File has been sent, closing connection with peer!")
 }
@@ -158,14 +164,16 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
-	if transferInsideNetwork(file) == nil {
-		return
+	addr, _ := net.ResolveUDPAddr("udp", friend.PrivIP)
+	if myPeerInfo.FileName != "" {
+		sendFile(file)
+	} else {
+		receiveFile(addr)
 	}
-
-	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
+	addr, _ = net.ResolveUDPAddr("udp", friend.PubIP)
 	holePunch(server, addr)
 	if myPeerInfo.FileName != "" {
-		sendFile(file, addr)
+		sendFile(file)
 	} else {
 		receiveFile(addr)
 	}
