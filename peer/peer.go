@@ -111,7 +111,6 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 	go func() {
 		for done == false {
 			len, err := file.ReadAt(sendBuffer, int64(packet.SeqNo))
-			fmt.Println("read: ", len)
 			packet.SeqNo += len
 			packet.Info = sendBuffer[:len]
 			msg, err := json.Marshal(&packet)
@@ -122,7 +121,7 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
 			}
-			time.Sleep(time.Microsecond * 1)
+			time.Sleep(time.Microsecond * 5)
 		}
 		return
 	}()
@@ -132,7 +131,6 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 		len, _, _ := server.ReadFromUDP(recvBuffer)
 		prevBytesReceived = int(bytesRecieved)
 		bytesRecieved, err = strconv.ParseInt(string(recvBuffer[:len]), 10, 64)
-		fmt.Println("Recieved from server " + string(recvBuffer))
 		if err != nil {
 			fmt.Println("Error: " + err.Error())
 		}
@@ -140,7 +138,6 @@ func sendFile(server *net.UDPConn, file *os.File, addr *net.UDPAddr) {
 			done = true
 		}
 		if int(bytesRecieved) == prevBytesReceived {
-			fmt.Println("ByteSent is updated")
 			packet.SeqNo = int(bytesRecieved)
 		}
 	}

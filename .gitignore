@@ -19,3 +19,4 @@
 *.mp3
 *.txt
 PeerTest/*
+testFiles/*
