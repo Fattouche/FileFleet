@@ -41,6 +41,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	connected := false
 	go func() {
 		for connected != true {
+			fmt.Println("Holedpunching")
 			server.WriteToUDP([]byte("1"), addr)
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -49,6 +50,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	for {
 		_, recvAddr, _ := server.ReadFromUDP(buff)
 		if recvAddr.String() == addr.String() {
+			fmt.Println("GOT A HOLEPUNCH!")
 			connected = true
 			time.Sleep(time.Millisecond * 500)
 			return
@@ -56,10 +58,13 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	}
 }
 
-func sendFile(file *os.File, addr string) bool {
-	session, err := quic.DialAddr(addr, &tls.Config{InsecureSkipVerify: true}, nil)
+func sendFile(server net.PacketConn, file *os.File, addr string) bool {
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	config := new(quic.Config)
+	config.HandshakeTimeout = time.Millisecond * 2000
+	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, config)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		return false
 	}
 	stream, err := session.OpenStreamSync()
 
@@ -77,7 +82,7 @@ func sendFile(file *os.File, addr string) bool {
 	return true
 }
 
-func receiveFile(addr string) bool {
+func receiveFile(server net.PacketConn, addr string) bool {
 	newFile, err := os.Create(friend.FileName)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
@@ -85,11 +90,12 @@ func receiveFile(addr string) bool {
 	defer newFile.Close()
 	config := new(quic.Config)
 	config.IdleTimeout = time.Millisecond * 2000
-	server, err := quic.ListenAddr(addr, generateTLSConfig(), config)
+	connection, err := quic.Listen(server, generateTLSConfig(), config)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
+		return false
 	}
-	conn, err := server.Accept()
+	conn, err := connection.Accept()
 	stream, err := conn.AcceptStream()
 
 	receivedBytes := int64(0)
@@ -137,26 +143,30 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
-	server.Close()
 	Sent := false
 	Recieved := false
 	if myPeerInfo.FileName != "" {
-		Sent = sendFile(file, friend.PrivIP)
+		Sent = sendFile(server, file, friend.PrivIP)
 	} else {
-		Recieved = receiveFile(myPeerInfo.PrivIP)
+		Recieved = receiveFile(server, myPeerInfo.PrivIP)
 	}
 	if Sent == true || Recieved == true {
 		return
 	}
+	server.Close()
+	time.Sleep(time.Millisecond * 1000)
 
+	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
 	laddr, _ := net.ResolveUDPAddr("udp4", myPeerInfo.PrivIP)
 	server, err = net.ListenUDP("udp4", laddr)
-	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
+	defer server.Close()
+
 	holePunch(server, addr)
+
 	if myPeerInfo.FileName != "" {
-		sendFile(file, friend.PubIP)
+		sendFile(server, file, friend.PubIP)
 	} else {
-		receiveFile(myPeerInfo.PrivIP)
+		receiveFile(server, myPeerInfo.PrivIP)
 	}
 }
 
