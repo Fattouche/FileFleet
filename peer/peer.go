@@ -35,8 +35,11 @@ var myPeerInfo *Peer
 // BUFFERSIZE used to read from file.
 const BUFFERSIZE = 1024
 
+// CentServerAddr used to communicate between peer and rendevouz server.
+const CentServerAddr = "18.221.47.86:8080"
+
 // holePunch punches a hole through users NATs if they exist in different networks.
-func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
+func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 	connected := false
 	go func() {
 		for connected != true {
@@ -45,23 +48,26 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 		}
 	}()
 	buff := make([]byte, 100)
-	start := time.Now()
-	for time.Since(start) > time.Second*2 {
-		_, recvAddr, _ := server.ReadFromUDP(buff)
+	server.SetReadDeadline(time.Now().Add(time.Second * 1))
+	for {
+		_, recvAddr, err := server.ReadFromUDP(buff)
+		if err != nil {
+			connected = true
+			return err
+		}
 		if recvAddr.String() == addr.String() {
 			connected = true
 			time.Sleep(time.Millisecond * 500)
-			return
+			return nil
 		}
 	}
-	connected = true
 }
 
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
 func sendFile(server net.PacketConn, file *os.File, addr string) bool {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	config := new(quic.Config)
-	config.HandshakeTimeout = time.Millisecond * 1000
+	config.HandshakeTimeout = time.Millisecond * 500
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, config)
 	if err != nil {
 		return false
@@ -96,14 +102,13 @@ func receiveFile(server net.PacketConn, addr string) {
 		fmt.Println("Error: " + err.Error())
 	}
 	defer connection.Close()
-
-	conn, err := connection.Accept()
+	session, err := connection.Accept()
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 	}
-	defer conn.Close(err)
+	defer session.Close(err)
 
-	stream, err := conn.AcceptStream()
+	stream, err := session.AcceptStream()
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 	}
@@ -154,7 +159,13 @@ func transferFile(server *net.UDPConn) {
 		}
 	}
 	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
-	holePunch(server, addr)
+	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
+
+	err = holePunch(server, addr)
+	if err != nil {
+		time.Sleep(time.Millisecond * 500)
+		server, _ = net.ListenUDP("udp", laddr)
+	}
 
 	if myPeerInfo.FileName != "" {
 		if sendFile(server, file, friend.PubIP) {
@@ -165,10 +176,9 @@ func transferFile(server *net.UDPConn) {
 		return
 	}
 
-	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
 	addr, _ = net.ResolveUDPAddr("udp", friend.PrivIP)
 	server.Close()
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 1000)
 	server, _ = net.ListenUDP("udp", laddr)
 
 	sendFile(server, file, friend.PrivIP)
@@ -180,35 +190,28 @@ func getPeerInfo(server *net.UDPConn) {
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
-	serverAddr, err := net.ResolveUDPAddr("udp", "18.221.47.86:8080")
+	centUDPAddr, err := net.ResolveUDPAddr("udp", CentServerAddr)
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
-	server.WriteToUDP(buff, serverAddr)
-	connected := false
-	buf := make([]byte, 1000)
-	go func() {
-		for connected != true {
-			server.WriteToUDP(buff, serverAddr)
-			time.Sleep(3000 * time.Millisecond)
-		}
-	}()
-	for {
-		len, _, _ := server.ReadFromUDP(buf)
-		if string(buf[:len]) == "1" {
-			connected = true
-		} else if string(buf[:len]) == "0" {
-			fmt.Println("Server error, please reconnect")
-			return
-		} else {
-			fmt.Println("Recieved peer information from server: " + string(buf[:len]))
-			err = json.Unmarshal(buf[:len], &friend)
-			if err != nil {
-				fmt.Println("Error: " + err.Error())
-			}
-			break
-		}
+	session, err := quic.Dial(server, centUDPAddr, CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+	if err != nil {
+		fmt.Println("Error:" + err.Error())
 	}
+	//defer session.Close(err)
+	stream, err := session.OpenStreamSync()
+	if err != nil {
+		fmt.Println("Error:" + err.Error())
+	}
+	//defer stream.Close()
+	stream.Write(buff)
+	recvBuff := make([]byte, BUFFERSIZE)
+	len, _ := stream.Read(recvBuff)
+	if string(recvBuff[:len]) == "2" {
+		fmt.Println("Both trying to send a file, please re establish")
+	}
+	fmt.Println("Recieved peer information from server: " + string(recvBuff[:len]))
+	json.Unmarshal(recvBuff[:len], &friend)
 }
 
 // externalIP searches through the machines interfaces to collect its private IP within the subnet.
