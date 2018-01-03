@@ -149,11 +149,10 @@ func transferFile(server *net.UDPConn) {
 	}
 	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
 	holePunch(server, addr)
-
 	Sent := false
 	Recieved := false
 	if myPeerInfo.FileName != "" {
-		Sent = sendFile(server, file, friend.PrivIP)
+		Sent = sendFile(server, file, friend.PubIP)
 	} else {
 		Recieved = receiveFile(server, myPeerInfo.PrivIP)
 	}
@@ -162,9 +161,9 @@ func transferFile(server *net.UDPConn) {
 	}
 
 	if myPeerInfo.FileName != "" {
-		sendFile(server, file, friend.PubIP)
+		Sent = sendFile(server, file, friend.PrivIP)
 	} else {
-		receiveFile(server, myPeerInfo.PrivIP)
+		Recieved = receiveFile(server, myPeerInfo.PrivIP)
 	}
 }
 
