@@ -47,9 +47,13 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 		}
 	}()
 	buff := make([]byte, 100)
+	go func() {
+		time.Sleep(time.Millisecond * 3000)
+		connected = true
+	}()
 	for {
 		_, recvAddr, _ := server.ReadFromUDP(buff)
-		if recvAddr.String() == addr.String() {
+		if recvAddr.String() == addr.String() || connected == true {
 			fmt.Println("GOT A HOLEPUNCH!")
 			connected = true
 			time.Sleep(time.Millisecond * 500)
@@ -143,6 +147,9 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
+	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
+	holePunch(server, addr)
+
 	Sent := false
 	Recieved := false
 	if myPeerInfo.FileName != "" {
@@ -153,15 +160,6 @@ func transferFile(server *net.UDPConn) {
 	if Sent == true || Recieved == true {
 		return
 	}
-	server.Close()
-	time.Sleep(time.Millisecond * 1000)
-
-	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
-	laddr, _ := net.ResolveUDPAddr("udp4", myPeerInfo.PrivIP)
-	server, err = net.ListenUDP("udp4", laddr)
-	defer server.Close()
-
-	holePunch(server, addr)
 
 	if myPeerInfo.FileName != "" {
 		sendFile(server, file, friend.PubIP)
