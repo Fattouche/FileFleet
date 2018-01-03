@@ -41,25 +41,21 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) {
 	connected := false
 	go func() {
 		for connected != true {
-			fmt.Println("Holedpunching")
 			server.WriteToUDP([]byte("1"), addr)
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	buff := make([]byte, 100)
-	go func() {
-		time.Sleep(time.Millisecond * 3000)
-		connected = true
-	}()
-	for {
+	start := time.Now()
+	for time.Since(start) > time.Second*2 {
 		_, recvAddr, _ := server.ReadFromUDP(buff)
-		if recvAddr.String() == addr.String() || connected == true {
-			fmt.Println("GOT A HOLEPUNCH!")
+		if recvAddr.String() == addr.String() {
 			connected = true
 			time.Sleep(time.Millisecond * 500)
 			return
 		}
 	}
+	connected = true
 }
 
 func sendFile(server net.PacketConn, file *os.File, addr string) bool {
@@ -68,9 +64,12 @@ func sendFile(server net.PacketConn, file *os.File, addr string) bool {
 	config.HandshakeTimeout = time.Millisecond * 2000
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, config)
 	if err != nil {
+		fmt.Println("Error: " + err.Error())
 		return false
 	}
+	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
+	defer stream.Close()
 
 	fmt.Println("Sending file!")
 	message := make([]byte, 1024)
@@ -93,14 +92,29 @@ func receiveFile(server net.PacketConn, addr string) bool {
 	}
 	defer newFile.Close()
 	config := new(quic.Config)
-	config.IdleTimeout = time.Millisecond * 2000
+	config.HandshakeTimeout = time.Millisecond * 3000
+	config.IdleTimeout = time.Millisecond * 3000
+	server.SetDeadline(time.Now().Add(3 * time.Second))
 	connection, err := quic.Listen(server, generateTLSConfig(), config)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 		return false
 	}
+	defer connection.Close()
+
 	conn, err := connection.Accept()
+	if err != nil {
+		fmt.Println("Error: " + err.Error())
+		return false
+	}
+	defer conn.Close(err)
+
 	stream, err := conn.AcceptStream()
+	if err != nil {
+		fmt.Println("Error: " + err.Error())
+		return false
+	}
+	defer stream.Close()
 
 	receivedBytes := int64(0)
 	fmt.Println("Recieving file!")
@@ -147,10 +161,11 @@ func transferFile(server *net.UDPConn) {
 			return
 		}
 	}
-	addr, _ := net.ResolveUDPAddr("udp4", friend.PubIP)
+	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
 	holePunch(server, addr)
 	Sent := false
 	Recieved := false
+
 	if myPeerInfo.FileName != "" {
 		Sent = sendFile(server, file, friend.PubIP)
 	} else {
@@ -159,6 +174,11 @@ func transferFile(server *net.UDPConn) {
 	if Sent == true || Recieved == true {
 		return
 	}
+
+	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
+	addr, _ = net.ResolveUDPAddr("udp", friend.PrivIP)
+	server.Close()
+	server, _ = net.ListenUDP("udp", laddr)
 
 	if myPeerInfo.FileName != "" {
 		Sent = sendFile(server, file, friend.PrivIP)
@@ -172,7 +192,7 @@ func getPeerInfo(server *net.UDPConn) {
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
-	serverAddr, err := net.ResolveUDPAddr("udp4", "18.221.47.86:8080")
+	serverAddr, err := net.ResolveUDPAddr("udp", "18.221.47.86:8080")
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
 	}
@@ -265,8 +285,8 @@ func main() {
 		fmt.Println("Error getting machine ip: " + err.Error())
 	}
 
-	addr, err := net.ResolveUDPAddr("udp4", machineIP+":0")
-	server, err := net.ListenUDP("udp4", addr)
+	addr, err := net.ResolveUDPAddr("udp", machineIP+":0")
+	server, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 		server.Close()
