@@ -7,8 +7,8 @@ This repository was made to allow for simple and fast filetransfer without needi
 
 ## Getting Started Usage
 1. Usage requires that one peer acts as a reciever and one acts as a sender.
-2. To initialize as the sender of the file: `go run [your_name] [reciever_name] [file]`
-3. To initialize as the reciever of the file: `go run [your_name] [reciever_name]
+2. To initialize as the sender of the file: `go run peer.go [your_name] [reciever_name] [file]`
+3. To initialize as the reciever of the file: `go run peer.go [your_name] [reciever_name]
 4. If you want to host your own server : `go run main.go` and change the IP that the peer connects to in peer.go.
 
 ## Getting Started Development
