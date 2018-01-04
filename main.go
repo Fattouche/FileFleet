@@ -1,147 +1,55 @@
 package main
 
 import (
-<<<<<<< HEAD
-	"fmt"
-	"net"
-	"os"
+	"flag"
+
+	"github.com/asticode/go-astilectron"
+	"github.com/asticode/go-astilectron-bootstrap"
+	"github.com/asticode/go-astilog"
+	"github.com/pkg/errors"
 )
 
-func getIP(conn net.Conn, ipAddresses chan string) {
-	buff := make([]byte, 1)
-	conn.Read(buff)
-	if string(buff) == "1" {
-		fmt.Println("got a connection from peer1!")
-		peer1IP := conn.RemoteAddr()
-		fmt.Println(peer1IP.String())
-		ipAddresses <- peer1IP.String()
-	} else {
-		fmt.Println("got a connection from peer2!")
-		peer1IP := <-ipAddresses
-		conn.Write([]byte(peer1IP))
-	}
-}
-
-func determineListenAddress() (string, error) {
-	port := os.Getenv("PORT")
-	if port == "" {
-		return "", fmt.Errorf("$PORT not set")
-	}
-	return ":" + port, nil
-}
-
-func main() {
-	addr, err := determineListenAddress()
-	if err != nil {
-		panic(err)
-	}
-
-	server, err := net.Listen("tcp", addr)
-	if err != nil {
-		panic(err)
-	}
-	defer server.Close()
-	ipAddresses := make(chan string)
-	fmt.Println("Waiting for connections from peers")
-	for {
-		//Blocks waiting for a connection
-		connection, err := server.Accept()
-		if err != nil {
-			fmt.Println("Error: ", err)
-			os.Exit(1)
-		}
-		//get IP address of peers
-		go getIP(connection, ipAddresses)
-=======
-	"encoding/json"
-	"fmt"
-	"net"
-	"os"
-	"time"
+// Vars
+var (
+	AppName string
+	BuiltAt string
+	debug   = flag.Bool("d", false, "enables the debug mode")
+	w       *astilectron.Window
 )
 
-type Peer struct {
-	PrivIP   string
-	PubIP    string
-	Name     string
-	Friend   string
-	FileName string
-	FileSize int64
-}
-
-var peerMap map[string]*Peer
-
-func createPeer(len int, buff []byte, publicIP string) (*Peer, error) {
-	peer := new(Peer)
-	err := json.Unmarshal(buff[:len], &peer)
-	if err != nil {
-		fmt.Println("Error in createPeer: " + err.Error())
-		return nil, err
-	}
-	peer.PubIP = publicIP
-	peerMap[peer.Name] = peer
-	return peer, nil
-}
-
-func checkPeer(peer *Peer, server *net.UDPConn) {
-	addr, err := net.ResolveUDPAddr("udp4", peer.PubIP)
-	if err != nil {
-		fmt.Println("Error in checkPeer: " + err.Error())
-	}
-	for {
-		if _, ok := peerMap[peer.Friend]; ok && peerMap[peer.Friend] != nil {
-			if !(peer.FileName == "" || peerMap[peer.Friend].FileName == "") {
-				fmt.Println("Error: Both peers trying to send a file")
-				server.WriteToUDP([]byte("0"), addr)
-				return
-			}
-			msgForPeer, err := json.Marshal(peerMap[peer.Friend])
-			if err != nil {
-				fmt.Println("Error marshalling in checkpeer: " + err.Error())
-			}
-			server.WriteToUDP([]byte("1"), addr)
-			server.WriteToUDP(msgForPeer, addr)
-
-			time.Sleep(time.Millisecond * 500)
-			delete(peerMap, peer.Name)
-			return
-		}
-	}
-}
-
 func main() {
-	addr, err := net.ResolveUDPAddr("udp4", ":8080")
-	server, err := net.ListenUDP("udp4", addr)
-	fmt.Println("Listening on :8080")
-	if err != nil {
-		fmt.Println("Error: " + err.Error())
-		server.Close()
-		panic(err)
-	}
-	defer server.Close()
+	// Init
+	flag.Parse()
+	astilog.FlagInit()
 
-	buff := make([]byte, 1000)
-	peerMap = make(map[string]*Peer)
-
-	fmt.Println("Waiting for connections from peers")
-	for {
-		//Blocks waiting for a connection
-		len, addr, err := server.ReadFromUDP(buff)
-		fmt.Println("Got a connection from " + addr.String())
-		if err != nil {
-			fmt.Println("Error reading from server: ", err)
-			os.Exit(1)
-		}
-		peer, err := createPeer(len, buff, addr.String())
-		if err != nil {
-			fmt.Println("Error parsing peer info: " + err.Error())
-			server.WriteToUDP([]byte("0"), addr)
-			continue
-		} else {
-			fmt.Println("Connecting " + peer.Name + " and " + peer.Friend)
-			server.WriteToUDP([]byte("1"), addr)
-		}
-		go checkPeer(peer, server)
->>>>>>> 72f11adb811ee407b4647f058e6caaba22a46d4d
+	// Run bootstrap
+	astilog.Debugf("Running app built at %s", BuiltAt)
+	if err := bootstrap.Run(bootstrap.Options{
+		AstilectronOptions: astilectron.Options{
+			AppName:            AppName,
+			AppIconDarwinPath:  "resources/sharing.png",
+			AppIconDefaultPath: "resources/sharing.png",
+		},
+		Debug:    *debug,
+		Homepage: "index.html",
+		MenuOptions: []*astilectron.MenuItemOptions{{
+			Label: astilectron.PtrStr("File"),
+			SubMenu: []*astilectron.MenuItemOptions{
+				{Label: astilectron.PtrStr("About")},
+				{Role: astilectron.MenuItemRoleClose},
+			},
+		}},
+		OnWait: func(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+			w = iw
+			return nil
+		},
+		WindowOptions: &astilectron.WindowOptions{
+			BackgroundColor: astilectron.PtrStr("#333"),
+			Center:          astilectron.PtrBool(true),
+			Height:          astilectron.PtrInt(700),
+			Width:           astilectron.PtrInt(700),
+		},
+	}); err != nil {
+		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
 }
