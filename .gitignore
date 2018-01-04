@@ -27,3 +27,4 @@ Peer2/*
 application/*
 vendor_astilectron_bundler/*
 bind*
+*.syso
