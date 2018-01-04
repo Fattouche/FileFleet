@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net"
 	"os"
@@ -68,25 +69,30 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		log.Println("Error: ", err)
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
 
-	fmt.Println("Sending file!")
+	log.Println("transferring!")
+	notifyFrontEnd("transferring!")
 	start := time.Now()
 
 	io.Copy(stream, file)
 
-	fmt.Printf("Sent entire file to peer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
 }
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
 func receiveFile(server net.PacketConn, addr string) {
 	newFile, err := os.Create(friend.FileName)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		notifyFrontEnd("Couldn't create " + friend.FileName)
+		log.Println("Error: " + err.Error())
+		return
 	}
 	defer newFile.Close()
 	config := new(quic.Config)
@@ -97,29 +103,37 @@ func receiveFile(server net.PacketConn, addr string) {
 	config.HandshakeTimeout = 10
 	connection, err := quic.Listen(server, generateTLSConfig(), config)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		log.Println("Error: " + err.Error())
 		connection.Close()
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		log.Println("Error: " + err.Error())
+		return
 	}
 	defer session.Close(err)
 
 	stream, err := session.AcceptStream()
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		log.Println("Error: " + err.Error())
+		return
 	}
 	defer stream.Close()
 
-	fmt.Println("Recieving file!")
+	log.Println("transferring!")
+	notifyFrontEnd("transferring!")
 	start := time.Now()
 
 	io.Copy(newFile, stream)
 
-	fmt.Printf("Received file completely from peer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
 }
 
 //  generateTLSConfig is used to create a basic tls configuration for quic protocol.
@@ -144,14 +158,13 @@ func generateTLSConfig() *tls.Config {
 }
 
 // transferFile is the catalyst for setting up quic connections and initiating holepunching.
-func transferFile(server *net.UDPConn) {
+func transferFile(server *net.UDPConn) error {
 	var file *os.File
 	var err error
 	if myPeerInfo.FileName != "" {
 		file, err = os.Open(myPeerInfo.FileName)
 		if err != nil {
-			fmt.Println("Error: " + err.Error())
-			return
+			return err
 		}
 	}
 	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
@@ -176,29 +189,30 @@ func transferFile(server *net.UDPConn) {
 	} else {
 		receiveFile(server, myPeerInfo.PrivIP)
 	}
+	return nil
 }
 
 // getPeerInfo communicates with the centralized server to exchange information between peers.
 func getPeerInfo(server *net.UDPConn) error {
 	buff, err := json.Marshal(myPeerInfo)
 	if err != nil {
-		fmt.Println("Error:" + err.Error())
+		log.Println("Error:" + err.Error())
 		return err
 	}
 	centUDPAddr, err := net.ResolveUDPAddr("udp", CentServerAddr)
 	if err != nil {
-		fmt.Println("Error:" + err.Error())
+		log.Println("Error:" + err.Error())
 		return err
 	}
 	session, err := quic.Dial(server, centUDPAddr, CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
-		fmt.Println("Error:" + err.Error())
+		log.Println("Error:" + err.Error())
 		return err
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	if err != nil {
-		fmt.Println("Error:" + err.Error())
+		log.Println("Error:" + err.Error())
 		return err
 	}
 	defer stream.Close()
@@ -208,10 +222,10 @@ func getPeerInfo(server *net.UDPConn) error {
 	if string(recvBuff[:len]) == "2" {
 		return errors.New("Both trying to send a file, please try again")
 	}
-	fmt.Println("Recieved peer information from server: " + string(recvBuff[:len]))
+	log.Println("Recieved peer information from server: " + string(recvBuff[:len]))
 	err = json.Unmarshal(recvBuff[:len], &friend)
 	if err != nil {
-		fmt.Println("Error:" + err.Error())
+		log.Println("Error:" + err.Error())
 		return err
 	}
 
@@ -264,9 +278,10 @@ func initTransfer(peer1, peer2, fileName string) {
 	if fileName != "" {
 		transferFile, err := os.Open(myPeerInfo.FileName)
 		if err != nil {
-			fmt.Println("Error: " + err.Error())
+			log.Println("Error: " + err.Error())
 			transferFile.Close()
-			panic(err)
+			notifyFrontEnd("Couldn't open " + myPeerInfo.FileName)
+			return
 		}
 		fileInfo, _ := transferFile.Stat()
 		myPeerInfo.FileSize = fileInfo.Size()
@@ -274,23 +289,32 @@ func initTransfer(peer1, peer2, fileName string) {
 
 	machineIP, err := externalIP()
 	if err != nil {
-		fmt.Println("Error getting machine ip: " + err.Error())
+		notifyFrontEnd("Machine might not connected to a network, couldn't find it's IP!")
+		log.Println("Error getting machine ip: " + err.Error())
+		return
 	}
 
 	addr, err := net.ResolveUDPAddr("udp", machineIP+":0")
 	server, err := net.ListenUDP("udp", addr)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
+		log.Println("Error: " + err.Error())
 		server.Close()
-		panic(err)
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		return
 	}
-	fmt.Println("Listening on :" + server.LocalAddr().String())
+	log.Println("Listening on :" + server.LocalAddr().String())
 	defer server.Close()
 	myPeerInfo.PrivIP = server.LocalAddr().String()
 	err = getPeerInfo(server)
 	if err != nil {
-		fmt.Println("Error :" + err.Error())
+		log.Println("Error :" + err.Error())
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
-	transferFile(server)
+	err = transferFile(server)
+	if err != nil {
+		log.Println("Error :" + err.Error())
+		notifyFrontEnd("Couldn't open " + myPeerInfo.FileName)
+		return
+	}
 }

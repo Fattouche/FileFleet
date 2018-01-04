@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"encoding/json"
 
@@ -70,4 +71,16 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		initTransfer(info.Peer1, info.Peer2, info.FileName)
 	}
 	return
+}
+
+func notifyFrontEnd(msg string) {
+	if strings.Contains(msg, "finished") {
+		bootstrap.SendMessage(w, "Finished", msg, func(m *bootstrap.MessageIn) {
+			return
+		})
+	} else {
+		bootstrap.SendMessage(w, "error", msg, func(m *bootstrap.MessageIn) {
+			return
+		})
+	}
 }
