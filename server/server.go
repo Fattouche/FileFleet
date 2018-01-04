@@ -47,6 +47,8 @@ func checkPeer(peer *Peer, stream quic.Stream) {
 			if !(peer.FileName == "" || peerMap[peer.Friend].FileName == "") {
 				fmt.Println("Error: Both peers trying to send a file")
 				stream.Write([]byte("2"))
+				time.Sleep(time.Millisecond * 500)
+				delete(peerMap, peer.Name)
 				return
 			}
 			msgForPeer, err := json.Marshal(peerMap[peer.Friend])

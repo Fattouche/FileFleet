@@ -176,33 +176,43 @@ func transferFile(server *net.UDPConn) {
 }
 
 // getPeerInfo communicates with the centralized server to exchange information between peers.
-func getPeerInfo(server *net.UDPConn) {
+func getPeerInfo(server *net.UDPConn) error {
 	buff, err := json.Marshal(myPeerInfo)
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
+		return err
 	}
 	centUDPAddr, err := net.ResolveUDPAddr("udp", CentServerAddr)
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
+		return err
 	}
 	session, err := quic.Dial(server, centUDPAddr, CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
+		return err
 	}
-	//defer session.Close(err)
+	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	if err != nil {
 		fmt.Println("Error:" + err.Error())
+		return err
 	}
-	//defer stream.Close()
+	defer stream.Close()
 	stream.Write(buff)
 	recvBuff := make([]byte, BUFFERSIZE)
 	len, _ := stream.Read(recvBuff)
 	if string(recvBuff[:len]) == "2" {
-		fmt.Println("Both trying to send a file, please re establish")
+		return errors.New("Both trying to send a file, please try again")
 	}
 	fmt.Println("Recieved peer information from server: " + string(recvBuff[:len]))
-	json.Unmarshal(recvBuff[:len], &friend)
+	err = json.Unmarshal(recvBuff[:len], &friend)
+	if err != nil {
+		fmt.Println("Error:" + err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // externalIP searches through the machines interfaces to collect its private IP within the subnet.
@@ -278,6 +288,10 @@ func main() {
 	fmt.Println("Listening on :" + server.LocalAddr().String())
 	defer server.Close()
 	myPeerInfo.PrivIP = server.LocalAddr().String()
-	getPeerInfo(server)
+	err = getPeerInfo(server)
+	if err != nil {
+		fmt.Println("Error :" + err.Error())
+		return
+	}
 	transferFile(server)
 }
