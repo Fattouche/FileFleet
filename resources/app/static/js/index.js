@@ -1,3 +1,9 @@
+function init() {
+	asticode.loader.init();
+    asticode.modaler.init();
+    asticode.notifier.init();
+}
+
 function validateInput(checkFile){
 	var Peer1 = document.getElementById("Peer1").value
 	var Peer2 = document.getElementById("Peer2").value
