@@ -13,23 +13,22 @@
     <div class="send-container">
         <div class="form">
             <div class="input-group margin-bottom-sm">
-              <input class="form-control" type="text" placeholder="Your Username">
+              <input class="form-control" type="text" placeholder="Your Username" id="Peer1">
             </div>
             <div class="input-group">
-              <input class="form-control" type="text" placeholder="Peer's Username">
+              <input class="form-control" type="text" placeholder="Peer's Username" id="Peer2">
             </div><br>
-            <div class="icon">
-            <a class="btn btn-default btn-lg">
-                <i class="fa fa-envelope-open-o fa-3x send"></i><br>receive</a>
-        </div>
+            <div id="error-message"></div><br>
+            <div class="icon" onclick="rcvFile()">
+                <a class="btn btn-default btn-lg">
+                    <i class="fa fa-envelope-open-o fa-3x send"></i><br>receive</a>
+            </div><br>
+            <div id="app-message"></div>
         </div>
     </div>
     <script src="static/js/index.js"></script>
     <script src="static/lib/astiloader/astiloader.js"></script>
     <script src="static/lib/astimodaler/astimodaler.js"></script>
     <script src="static/lib/astinotifier/astinotifier.js"></script>
-    <script type="text/javascript">
-        index.init();
-    </script>
 </body>
 </html>

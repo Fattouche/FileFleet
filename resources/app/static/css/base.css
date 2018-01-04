@@ -17,6 +17,7 @@ input {
     margin: 5px;
 }
 
+
 .left {
     text-align: center;
     background-color: #333;
@@ -115,4 +116,8 @@ input {
 
 .send {
     color: #333;
+}
+
+#error-message {
+    color: red;
 }
