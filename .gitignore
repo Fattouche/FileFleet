@@ -19,5 +19,7 @@
 *.mov
 *.mp3
 *.txt
+
+Peer2/*
 PeerTest/*
 testFiles/*
