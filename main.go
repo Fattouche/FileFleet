@@ -94,9 +94,12 @@ func receiveFile(server net.PacketConn, addr string) {
 	//Max flow control windows
 	config.MaxReceiveStreamFlowControlWindow = 0
 	config.MaxReceiveConnectionFlowControlWindow = 0
+	config.HandshakeTimeout = 10
 	connection, err := quic.Listen(server, generateTLSConfig(), config)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
+		connection.Close()
+		return
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
