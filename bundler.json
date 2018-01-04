@@ -1,0 +1,7 @@
+{
+    "app_name": "P2P_File_Transferer",
+    "icon_path_darwin": "resources/images/icon.icns",
+    "icon_path_linux": "resources/images/icon.png",
+    "icon_path_windows": "resources/images/icon.ico",
+    "output_path": "application"
+}

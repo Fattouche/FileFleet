@@ -3,7 +3,7 @@
 *.dll
 *.so
 *.dylib
-.DS_STORE
+*.DS_STORE
 
 # Test binary, build with `go test -c`
 *.test
@@ -19,6 +19,8 @@
 *.mov
 *.mp3
 *.txt
+
+Peer2/*
 PeerTest/*
 testFiles/*
 Peer2/*
