@@ -38,14 +38,17 @@ func main() {
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
 	options := bootstrap.Options{
+		Asset: Asset,
 		AstilectronOptions: astilectron.Options{
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/images/icon.icns",
 			AppIconDefaultPath: "resources/images/icon.png",
 		},
+		MenuOptions:    []*astilectron.MenuItemOptions{{}},
 		Debug:          *debug,
 		Homepage:       "index.html",
 		MessageHandler: handleMessages,
+		RestoreAssets:  RestoreAssets,
 		WindowOptions: &astilectron.WindowOptions{
 			BackgroundColor: astilectron.PtrStr("#333"),
 			Center:          astilectron.PtrBool(true),
