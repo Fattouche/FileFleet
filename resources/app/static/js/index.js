@@ -31,10 +31,11 @@ function validateInput(checkFile){
 	return returnMessage
 }
 
-function sendMessage(message){
+function sendMessage(input){
 	document.getElementById("postToApp").innerHTML = "Connecting to peer..."
 	document.getElementById("postToApp").removeAttribute("onclick")
-	astilectron.sendMessage(message, function(message) {
+
+	astilectron.sendMessage({name: "UserInput", payload: input}, function(message) {
 		console.log(message.payload)
 	})
 }
@@ -63,15 +64,15 @@ function rcvMessage(){
 }
 
 function rcvFile() {
-	var message = validateInput(checkFile=false)
-	if(!message) return
-	sendMessage(message)
+	var input = validateInput(checkFile=false)
+	if(!input) return
+	sendMessage(input)
 	while(rcvMessage() === "connected") {}
 }
 
 function sendFile() {
-	var message = validateInput(checkFile=true)
-	if(!message) return
-	sendMessage(message)
+	var input = validateInput(checkFile=true)
+	if(!input) return
+	sendMessage(input)
 	while(rcvMessage() === "connected") {}
 }
