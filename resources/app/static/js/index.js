@@ -32,37 +32,46 @@ function validateInput(checkFile){
 }
 
 function sendMessage(message){
-	document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
+	document.getElementById("postToApp").innerHTML = "Connecting to peer..."
+	document.getElementById("postToApp").removeAttribute("onclick")
 	astilectron.sendMessage(message, function(message) {
 		console.log(message.payload)
 	})
 }
 
 function rcvMessage(){
+	var mes
 	document.addEventListener('astilectron-ready', function() {
 		astilectron.onMessage(function(message) {
-			if (message.name === "error") {
-				document.getElementById("postToApp").innerHTML = ""
-				document.getElementById("app-message").innerHTML = message.message
+			mes = message.name
+			switch (message.name) {
+				case "error" :
+					document.getElementById("postToApp").innerHTML = ""
+					document.getElementById("app-message").innerHTML = message.message
+					break
+				case "connected":
+					document.getElementById("postToApp").innerHTML = ""
+					document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
+					break
+				case "finished":
+					document.getElementById("postToApp").innerHTML = ""
+					document.getElementById("app-message").innerHTML = "Transfer complete!"
 			}
-			else if (message.name === "finished") {
-				document.getElementById("postToApp").innerHTML = ""
-				document.getElementById("app-message").innerHTML = "DONE"
-			}
-		});
+		})
 	})
+	return mes
 }
 
 function rcvFile() {
 	var message = validateInput(checkFile=false)
 	if(!message) return
 	sendMessage(message)
-	rcvMessage()
+	while(rcvMessage() === "connected") {}
 }
 
 function sendFile() {
 	var message = validateInput(checkFile=true)
 	if(!message) return
 	sendMessage(message)
-	rcvMessage()
+	while(rcvMessage() === "connected") {}
 }

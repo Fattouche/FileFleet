@@ -70,6 +70,15 @@ input {
     margin-bottom: 5px;
 }
 
+.back {
+    color: #333;
+}
+
+.back:hover {
+    color: #a5a5a5;
+    cursor: pointer; /* "hand" cursor */
+}
+
 .icon-send {
     color: #333;
     margin-top: 45%;
@@ -88,12 +97,6 @@ input {
 .icon-rcv:hover {
     color: #a5a5a5;
     cursor: pointer; /* "hand" cursor */
-}
-
-.icon: {
-    position: relative;
-    vertical-align: middle;
-    display: table-cell;
 }
 
 .send-container {
