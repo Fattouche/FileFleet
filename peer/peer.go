@@ -33,7 +33,7 @@ var friend Peer
 var myPeerInfo *Peer
 
 // BUFFERSIZE used to read from file.
-const BUFFERSIZE = 1024
+const BUFFERSIZE = 48000
 
 // CentServerAddr used to communicate between peer and rendevouz server.
 const CentServerAddr = "18.221.47.86:8080"
@@ -64,30 +64,22 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
-func sendFile(server net.PacketConn, file *os.File, addr string) bool {
+func sendFile(server net.PacketConn, file *os.File, addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
-	config := new(quic.Config)
-	config.HandshakeTimeout = time.Millisecond * 500
-	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, config)
+	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
-		return false
+		fmt.Println("Error: ", err)
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
 
 	fmt.Println("Sending file!")
-	message := make([]byte, BUFFERSIZE)
+	start := time.Now()
 
-	for {
-		len, err := file.Read(message)
-		if err == io.EOF {
-			break
-		}
-		len, err = stream.Write(message[:len])
-	}
-	fmt.Println("Sent entire file to peer!")
-	return true
+	io.Copy(stream, file)
+
+	fmt.Printf("Sent entire file to peer in %f seconds!", time.Since(start).Seconds())
 }
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
@@ -97,7 +89,12 @@ func receiveFile(server net.PacketConn, addr string) {
 		fmt.Println("Error: " + err.Error())
 	}
 	defer newFile.Close()
-	connection, err := quic.Listen(server, generateTLSConfig(), nil)
+	config := new(quic.Config)
+
+	//Max flow control windows
+	config.MaxReceiveStreamFlowControlWindow = 0
+	config.MaxReceiveConnectionFlowControlWindow = 0
+	connection, err := quic.Listen(server, generateTLSConfig(), config)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 	}
@@ -114,16 +111,12 @@ func receiveFile(server net.PacketConn, addr string) {
 	}
 	defer stream.Close()
 
-	receivedBytes := int64(0)
 	fmt.Println("Recieving file!")
-	for receivedBytes < friend.FileSize {
-		_, err := io.Copy(newFile, stream)
-		if err != nil {
-			fmt.Println("Error in reading: ", err)
-		}
-		receivedBytes += BUFFERSIZE
-	}
-	fmt.Println("Received file completely from peer!")
+	start := time.Now()
+
+	io.Copy(newFile, stream)
+
+	fmt.Printf("Received file completely from peer in %f seconds!", time.Since(start).Seconds())
 }
 
 //  generateTLSConfig is used to create a basic tls configuration for quic protocol.
@@ -160,28 +153,26 @@ func transferFile(server *net.UDPConn) {
 	}
 	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
 	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
+	public := true
 
 	err = holePunch(server, addr)
 	if err != nil {
+		server.Close()
 		time.Sleep(time.Millisecond * 500)
 		server, _ = net.ListenUDP("udp", laddr)
+		public = false
 	}
 
+	//If holepunching failed we know there is no peer in our network
 	if myPeerInfo.FileName != "" {
-		if sendFile(server, file, friend.PubIP) {
-			return
+		if public {
+			sendFile(server, file, friend.PubIP)
+		} else {
+			sendFile(server, file, friend.PrivIP)
 		}
 	} else {
 		receiveFile(server, myPeerInfo.PrivIP)
-		return
 	}
-
-	addr, _ = net.ResolveUDPAddr("udp", friend.PrivIP)
-	server.Close()
-	time.Sleep(time.Millisecond * 1000)
-	server, _ = net.ListenUDP("udp", laddr)
-
-	sendFile(server, file, friend.PrivIP)
 }
 
 // getPeerInfo communicates with the centralized server to exchange information between peers.
