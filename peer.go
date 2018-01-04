@@ -76,7 +76,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	defer stream.Close()
 
 	log.Println("transferring!")
-	notifyFrontEnd("transferring!")
+	notifyFrontEnd("Connected to " + friend.Name + ", starting transfer!")
 	start := time.Now()
 
 	io.Copy(stream, file)
@@ -126,7 +126,7 @@ func receiveFile(server net.PacketConn, addr string) {
 	defer stream.Close()
 
 	log.Println("transferring!")
-	notifyFrontEnd("transferring!")
+	notifyFrontEnd("Connected to " + friend.Name + ", starting transfer!")
 	start := time.Now()
 
 	io.Copy(newFile, stream)
