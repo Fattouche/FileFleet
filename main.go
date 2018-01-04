@@ -71,3 +71,9 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 	}
 	return
 }
+
+func notifyFrontEnd(msg string) {
+	bootstrap.SendMessage(w, "information", msg, func(m *bootstrap.MessageIn) {
+		return
+	})
+}
