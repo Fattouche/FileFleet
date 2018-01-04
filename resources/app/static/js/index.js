@@ -26,20 +26,37 @@ function validateInput(checkFile){
 }
 
 function sendMessage(message){
+	document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
 	astilectron.sendMessage(message, function(message) {
-        document.getElementById("app-message").innerHTML = message.payload
-    })
+		console.log(message.payload)
+	})
+}
 
+function rcvMessage(){
+	document.addEventListener('astilectron-ready', function() {
+		astilectron.onMessage(function(message) {
+			if (message.name === "error") {
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("app-message").innerHTML = message.message
+			}
+			else if (message.name === "finished") {
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("app-message").innerHTML = "DONE"
+			}
+		});
+	})
 }
 
 function rcvFile() {
 	var message = validateInput(checkFile=false)
 	if(!message) return
 	sendMessage(message)
+	rcvMessage()
 }
 
 function sendFile() {
 	var message = validateInput(checkFile=true)
 	if(!message) return
 	sendMessage(message)
+	rcvMessage()
 }
