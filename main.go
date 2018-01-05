@@ -19,16 +19,18 @@ type AppInfo struct {
 	FileName string
 }
 
-// Constants
-const htmlAbout = `Welcome on <b>P2P_File_Transferer</b>`
-
 // Vars
 var (
 	AppName string
 	BuiltAt string
-	debug   = flag.Bool("d", false, "enables the debug mode")
+	debug   = flag.Bool("d", true, "enables the debug mode")
 	w       *astilectron.Window
 )
+
+type MessageOut struct {
+	Name    string      `json:"name"`
+	Payload interface{} `json:"payload,omitempty"`
+}
 
 func main() {
 	// Init
@@ -66,12 +68,20 @@ func main() {
 // handleMessages handles messages
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	info := new(AppInfo)
+	var msg string
 	if len(m.Payload) > 0 {
-		err := json.Unmarshal(m.Payload, &info)
+		err = json.Unmarshal(m.Payload, &msg)
 		if err != nil {
 			payload = err.Error()
+			return
 		}
-		initTransfer(info.Peer1, info.Peer2, info.FileName)
+		err = json.Unmarshal([]byte(msg), &info)
+		if err != nil {
+			payload = err.Error()
+			return
+		}
+		go initTransfer(info.Peer1, info.Peer2, info.FileName)
+		payload = info.FileName
 	}
 	return
 }
@@ -79,15 +89,12 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 func notifyFrontEnd(msg string) {
 	if strings.Contains(msg, "finished") {
 		bootstrap.SendMessage(w, "Finished", msg, func(m *bootstrap.MessageIn) {
-			return
 		})
 	} else if strings.Contains(msg, "Connected") {
 		bootstrap.SendMessage(w, "Connected", msg, func(m *bootstrap.MessageIn) {
-			return
 		})
 	} else {
 		bootstrap.SendMessage(w, "error", msg, func(m *bootstrap.MessageIn) {
-			return
 		})
 	}
 }

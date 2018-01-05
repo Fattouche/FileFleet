@@ -1,25 +1,26 @@
 function init() {
 	asticode.loader.init();
-    asticode.modaler.init();
-    asticode.notifier.init();
+	asticode.modaler.init();
+	asticode.notifier.init();
 }
 
-function validateInput(checkFile){
+
+function validateInput(checkFile) {
 	var Peer1 = document.getElementById("Peer1").value
 	var Peer2 = document.getElementById("Peer2").value
 	var returnMessage = {}
 
-	if(Peer1.length == 0 || Peer2.length == 0 || Peer1.length > 50 || Peer2.length > 50 || Peer1 === Peer2) {
+	if (Peer1.length == 0 || Peer2.length == 0 || Peer1.length > 50 || Peer2.length > 50 || Peer1 === Peer2) {
 		console.log("Error, invalid input")
 		document.getElementById("error-message").innerHTML = "Peer names must be unique and between 1 and 50 characters"
 		return false
-	} 
+	}
 	returnMessage["Peer1"] = Peer1
 	returnMessage["Peer2"] = Peer2
 
-	if (checkFile){
+	if (checkFile) {
 		var file = document.getElementById("FileName").value
-		if(file.length == 0) {
+		if (file.length == 0) {
 			console.log("Error, invalid file input")
 			document.getElementById("error-message").innerHTML = "Please choose a file"
 			return false
@@ -31,26 +32,30 @@ function validateInput(checkFile){
 	return returnMessage
 }
 
-function sendMessage(input){
+function sendMessage(input) {
 	document.getElementById("postToApp").innerHTML = "Connecting to peer..."
 	document.getElementById("postToApp").removeAttribute("onclick")
 
-	astilectron.sendMessage({name: "UserInput", payload: input}, function(message) {
-		console.log(message.payload)
+	let payloadString = JSON.stringify(input)
+	let mes = { name: "info", payload: payloadString }
+
+	astilectron.sendMessage({ name: "info", payload: payloadString }, function (message) {
+		console.log("RECIEVED: " + message.payload)
 	})
 }
 
-function rcvMessage(){
+function rcvMessage() {
 	var mes
-	document.addEventListener('astilectron-ready', function() {
-		astilectron.onMessage(function(message) {
+	document.addEventListener('astilectron-ready', function () {
+		astilectron.onMessage(function (message) {
 			mes = message.name
 			switch (message.name) {
-				case "error" :
+				case "error":
 					document.getElementById("postToApp").innerHTML = ""
 					document.getElementById("app-message").innerHTML = message.message
 					break
 				case "connected":
+					console.log("connected")
 					document.getElementById("postToApp").innerHTML = ""
 					document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
 					break
@@ -63,16 +68,17 @@ function rcvMessage(){
 	return mes
 }
 
+
 function rcvFile() {
-	var input = validateInput(checkFile=false)
-	if(!input) return
+	var input = validateInput(checkFile = false)
+	if (!input) return
 	sendMessage(input)
-	while(rcvMessage() === "connected") {}
+	while (rcvMessage() === "connected") { }
 }
 
 function sendFile() {
-	var input = validateInput(checkFile=true)
-	if(!input) return
+	var input = validateInput(checkFile = true)
+	if (!input) return
 	sendMessage(input)
-	while(rcvMessage() === "connected") {}
+	while (rcvMessage() === "connected") { }
 }
