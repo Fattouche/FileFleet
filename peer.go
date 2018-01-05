@@ -67,10 +67,15 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
 func sendFile(server net.PacketConn, file *os.File, addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
-	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
+	notifyFrontEnd("TRYING TO DIAL")
+	config := new(quic.Config)
+	config.HandshakeTimeout = 5
+	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, config)
 	if err != nil {
 		log.Println("Error: ", err)
+		notifyFrontEnd("Error " + err.Error())
 	}
+	notifyFrontEnd("Dialed! " + err.Error())
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
@@ -105,13 +110,15 @@ func receiveFile(server net.PacketConn, addr string) {
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		connection.Close()
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again3!")
 		return
 	}
 	defer connection.Close()
+	notifyFrontEnd("WAITING FOR CONNECTION")
 	session, err := connection.Accept()
+	notifyFrontEnd("Got a connection!")
 	if err != nil {
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again4!")
 		log.Println("Error: " + err.Error())
 		return
 	}
@@ -119,7 +126,7 @@ func receiveFile(server net.PacketConn, addr string) {
 
 	stream, err := session.AcceptStream()
 	if err != nil {
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again5!")
 		log.Println("Error: " + err.Error())
 		return
 	}
@@ -159,6 +166,7 @@ func generateTLSConfig() *tls.Config {
 
 // transferFile is the catalyst for setting up quic connections and initiating holepunching.
 func transferFile(server *net.UDPConn) error {
+	notifyFrontEnd("TRANSFER")
 	var file *os.File
 	var err error
 	if myPeerInfo.FileName != "" {
@@ -170,7 +178,6 @@ func transferFile(server *net.UDPConn) error {
 	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
 	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
 	public := true
-
 	err = holePunch(server, addr)
 	if err != nil {
 		server.Close()
@@ -178,12 +185,14 @@ func transferFile(server *net.UDPConn) error {
 		server, _ = net.ListenUDP("udp", laddr)
 		public = false
 	}
-
+	notifyFrontEnd("STARTING TRANSFER")
 	//If holepunching failed we know there is no peer in our network
 	if myPeerInfo.FileName != "" {
 		if public {
+			notifyFrontEnd("PUBLIC")
 			sendFile(server, file, friend.PubIP)
 		} else {
+			notifyFrontEnd("PRIVATE")
 			sendFile(server, file, friend.PrivIP)
 		}
 	} else {
@@ -219,6 +228,7 @@ func getPeerInfo(server *net.UDPConn) error {
 	stream.Write(buff)
 	recvBuff := make([]byte, BUFFERSIZE)
 	len, _ := stream.Read(recvBuff)
+
 	if string(recvBuff[:len]) == "2" {
 		return errors.New("Both trying to send a file, please try again")
 	}
@@ -275,7 +285,9 @@ func initTransfer(peer1, peer2, fileName string) {
 	myPeerInfo.Name = strings.ToLower(peer1)
 	myPeerInfo.Friend = strings.ToLower(peer2)
 	myPeerInfo.FileName = fileName
-	if fileName != "" {
+
+	if myPeerInfo.FileName != "" {
+		myPeerInfo.FileName = "C:\\Go\\bin\\src\\P2P_File_Transferer\\testFiles\\test.mp4"
 		transferFile, err := os.Open(myPeerInfo.FileName)
 		if err != nil {
 			log.Println("Error: " + err.Error())
@@ -299,7 +311,7 @@ func initTransfer(peer1, peer2, fileName string) {
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		server.Close()
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again1!")
 		return
 	}
 	log.Println("Listening on :" + server.LocalAddr().String())
@@ -308,7 +320,7 @@ func initTransfer(peer1, peer2, fileName string) {
 	err = getPeerInfo(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again2!")
 		return
 	}
 	err = transferFile(server)

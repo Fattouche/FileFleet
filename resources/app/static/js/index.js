@@ -1,8 +1,31 @@
-function init() {
+window.onload = function () {
 	asticode.loader.init();
 	asticode.modaler.init();
 	asticode.notifier.init();
 }
+
+document.addEventListener('astilectron-ready', function () {
+	astilectron.onMessage(function (message) {
+		mes = message.name
+		switch (message.name) {
+			case "Error":
+				console.log("ERROR: " + message.payload)
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("app-message").innerHTML = message.payload
+				break
+			case "Connected":
+				console.log("connected")
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
+				break
+			case "Finished":
+				console.log("FINISHED: " + message.payload)
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("app-message").innerHTML = "Transfer complete!"
+		}
+		return { payload: "payload" };
+	})
+})
 
 
 function validateInput(checkFile) {
@@ -44,41 +67,17 @@ function sendMessage(input) {
 	})
 }
 
-function rcvMessage() {
-	var mes
-	document.addEventListener('astilectron-ready', function () {
-		astilectron.onMessage(function (message) {
-			mes = message.name
-			switch (message.name) {
-				case "error":
-					document.getElementById("postToApp").innerHTML = ""
-					document.getElementById("app-message").innerHTML = message.message
-					break
-				case "connected":
-					console.log("connected")
-					document.getElementById("postToApp").innerHTML = ""
-					document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i>'
-					break
-				case "finished":
-					document.getElementById("postToApp").innerHTML = ""
-					document.getElementById("app-message").innerHTML = "Transfer complete!"
-			}
-		})
-	})
-	return mes
-}
+
 
 
 function rcvFile() {
 	var input = validateInput(checkFile = false)
 	if (!input) return
 	sendMessage(input)
-	while (rcvMessage() === "connected") { }
 }
 
 function sendFile() {
 	var input = validateInput(checkFile = true)
 	if (!input) return
 	sendMessage(input)
-	while (rcvMessage() === "connected") { }
 }
