@@ -287,7 +287,6 @@ func initTransfer(peer1, peer2, fileName string) {
 	myPeerInfo.FileName = fileName
 
 	if myPeerInfo.FileName != "" {
-		myPeerInfo.FileName = "C:\\Go\\bin\\src\\P2P_File_Transferer\\testFiles\\test.mp4"
 		transferFile, err := os.Open(myPeerInfo.FileName)
 		if err != nil {
 			log.Println("Error: " + err.Error())
