@@ -19,7 +19,7 @@ function validateInput(checkFile) {
 	returnMessage["Peer2"] = Peer2
 
 	if (checkFile) {
-		var file = document.getElementById("FileName").value
+		var file = document.getElementById("FileName").files[0].path
 		if (file.length == 0) {
 			console.log("Error, invalid file input")
 			document.getElementById("error-message").innerHTML = "Please choose a file"
