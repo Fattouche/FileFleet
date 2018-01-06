@@ -1,3 +1,7 @@
+function gray() {
+	document.getElementById("fileBox").classList.add('is-dragover');
+}
+
 function init() {
 	asticode.loader.init();
 	asticode.modaler.init();

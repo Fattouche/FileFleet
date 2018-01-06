@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="static/lib/astinotifier/astinotifier.css">
     <link rel="stylesheet" href="static/lib/font-awesome-4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/box.css"/>
 </head>
 <body>
     <div class="send-container">
@@ -22,8 +23,11 @@
             <div class="input-group">
               <input class="form-control" type="text" placeholder="Peer's Username" id="Peer2">
             </div>
-            <div class="icon">
-                <input class= "upload" type="file" id="FileName">
+            <div class="fileUpload" id="fileBox" ondragover="gray()" ondragleave="white()" ondrop="white()">
+                <input class="upload" type="file" id="FileName">
+                <a id="text"><i class="fa fa-cloud-upload fa-5x upload"></i><br>
+                    click to select a file or drag it here
+                </a>
             </div><br>
             <div id="error-message"></div><br>
             <div class="icon" onclick="sendFile()" id="postToApp">
@@ -33,7 +37,9 @@
             <div id="app-message"></div>
         </div>
     </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="static/js/index.js"></script>
+    <script src="static/js/upload-box.js"></script>
     <script src="static/lib/astiloader/astiloader.js"></script>
     <script src="static/lib/astimodaler/astimodaler.js"></script>
     <script src="static/lib/astinotifier/astinotifier.js"></script>
