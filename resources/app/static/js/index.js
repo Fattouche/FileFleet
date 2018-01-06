@@ -22,6 +22,11 @@ document.addEventListener('astilectron-ready', function () {
 				console.log("FINISHED: " + message.payload)
 				document.getElementById("postToApp").innerHTML = ""
 				document.getElementById("app-message").innerHTML = "Transfer complete!"
+			case "about":
+				let c = document.createElement("div");
+				c.innerHTML = message.payload;
+				asticode.modaler.setContent(c);
+				asticode.modaler.show();
 		}
 		return { payload: "payload" };
 	})

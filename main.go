@@ -11,6 +11,7 @@ import (
 	"github.com/asticode/go-astilog"
 	"github.com/pkg/errors"
 )
+const about string = "This is a simple P2P File transferer application that allows users to transfer files at extremely fast speeds using Googles quic protocol!"
 
 // AppInfo given by the front end.
 type AppInfo struct {
@@ -27,6 +28,7 @@ var (
 	w       *astilectron.Window
 )
 
+// MessageOut used to recieve information from frontEnd
 type MessageOut struct {
 	Name    string      `json:"name"`
 	Payload interface{} `json:"payload"`
@@ -54,7 +56,7 @@ func main() {
 				{
 					Label: astilectron.PtrStr("About"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						if err := bootstrap.SendMessage(w, "about", "This is a p2p file transferer using golang", func(m *bootstrap.MessageIn) {
+						if err := bootstrap.SendMessage(w, "about", about, func(m *bootstrap.MessageIn) {
 							var s string
 							if err := json.Unmarshal(m.Payload, &s); err != nil {
 								astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
