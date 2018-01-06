@@ -33,7 +33,7 @@ var friend Peer
 var myPeerInfo *Peer
 
 // BUFFERSIZE used to read from file.
-const BUFFERSIZE = 48000
+const BUFFERSIZE = 1024
 
 // CentServerAddr used to communicate between peer and rendevouz server.
 const CentServerAddr = "18.221.47.86:8080"
@@ -89,17 +89,9 @@ func receiveFile(server net.PacketConn, addr string) {
 		fmt.Println("Error: " + err.Error())
 	}
 	defer newFile.Close()
-	config := new(quic.Config)
-
-	//Max flow control windows
-	config.MaxReceiveStreamFlowControlWindow = 0
-	config.MaxReceiveConnectionFlowControlWindow = 0
-	config.HandshakeTimeout = 10
-	connection, err := quic.Listen(server, generateTLSConfig(), config)
+	connection, err := quic.Listen(server, generateTLSConfig(), nil)
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
-		connection.Close()
-		return
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
