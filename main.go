@@ -29,7 +29,7 @@ var (
 
 type MessageOut struct {
 	Name    string      `json:"name"`
-	Payload interface{} `json:"payload,omitempty"`
+	Payload interface{} `json:"payload"`
 }
 
 func main() {
@@ -39,16 +39,46 @@ func main() {
 
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
-	options := bootstrap.Options{
+	if err := bootstrap.Run(bootstrap.Options{
 		Asset: Asset,
 		AstilectronOptions: astilectron.Options{
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/images/icon.icns",
 			AppIconDefaultPath: "resources/images/icon.png",
 		},
-		MenuOptions:    []*astilectron.MenuItemOptions{{}},
-		Debug:          *debug,
-		Homepage:       "index.html",
+		Debug:    *debug,
+		Homepage: "index.html",
+		MenuOptions: []*astilectron.MenuItemOptions{{
+			Label: astilectron.PtrStr("File"),
+			SubMenu: []*astilectron.MenuItemOptions{
+				{
+					Label: astilectron.PtrStr("About"),
+					OnClick: func(e astilectron.Event) (deleteListener bool) {
+						if err := bootstrap.SendMessage(w, "about", "This is a p2p file transferer using golang", func(m *bootstrap.MessageIn) {
+							var s string
+							if err := json.Unmarshal(m.Payload, &s); err != nil {
+								astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
+								return
+							}
+							astilog.Infof("About modal has been displayed and payload is %s!", s)
+						}); err != nil {
+							astilog.Error(errors.Wrap(err, "sending about event failed"))
+						}
+						return
+					},
+				},
+				{Role: astilectron.MenuItemRoleClose},
+			},
+		}},
+		OnWait: func(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+			w = iw
+			go func() {
+				if err := bootstrap.SendMessage(w, "check.out.menu", "WE ARE SENDING"); err != nil {
+					astilog.Error(errors.Wrap(err, "sending check.out.menu event failed"))
+				}
+			}()
+			return nil
+		},
 		MessageHandler: handleMessages,
 		RestoreAssets:  RestoreAssets,
 		WindowOptions: &astilectron.WindowOptions{
@@ -57,10 +87,7 @@ func main() {
 			Height:          astilectron.PtrInt(700),
 			Width:           astilectron.PtrInt(700),
 		},
-	}
-	err := bootstrap.Run(options)
-
-	if err != nil {
+	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
 }
@@ -69,6 +96,7 @@ func main() {
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	info := new(AppInfo)
 	var msg string
+	info.FileName = ""
 	if len(m.Payload) > 0 {
 		err = json.Unmarshal(m.Payload, &msg)
 		if err != nil {
@@ -81,7 +109,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			return
 		}
 		go initTransfer(info.Peer1, info.Peer2, info.FileName)
-		payload = info.FileName
+		payload = "recieved"
 	}
 	return
 }
@@ -94,7 +122,7 @@ func notifyFrontEnd(msg string) {
 		bootstrap.SendMessage(w, "Connected", msg, func(m *bootstrap.MessageIn) {
 		})
 	} else {
-		bootstrap.SendMessage(w, "error", msg, func(m *bootstrap.MessageIn) {
+		bootstrap.SendMessage(w, "Error", msg, func(m *bootstrap.MessageIn) {
 		})
 	}
 }

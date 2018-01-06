@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"strings"
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
@@ -22,6 +21,7 @@ type Peer struct {
 	Name     string
 	Friend   string
 	FileName string
+	FilePath string
 	FileSize int64
 }
 
@@ -35,8 +35,7 @@ func createPeer(length int, buff []byte, publicIP string) (*Peer, error) {
 		return nil, err
 	}
 	peer.PubIP = publicIP
-	file := strings.Split(peer.FileName, "/")
-	peer.FileName = file[len(file)-1]
+	peer.FilePath = ""
 	peerMap[peer.Name] = peer
 	return peer, nil
 }

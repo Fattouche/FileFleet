@@ -27,6 +27,7 @@ type Peer struct {
 	Name     string
 	Friend   string
 	FileName string
+	FilePath string
 	FileSize int64
 }
 
@@ -75,8 +76,8 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
 
-	log.Println("transferring!")
-	notifyFrontEnd("Connected to " + friend.Name + ", starting transfer!")
+	log.Println("Sending file!")
+	notifyFrontEnd("Connected")
 	start := time.Now()
 
 	io.Copy(stream, file)
@@ -90,43 +91,28 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 func receiveFile(server net.PacketConn, addr string) {
 	newFile, err := os.Create(friend.FileName)
 	if err != nil {
-		notifyFrontEnd("Couldn't create " + friend.FileName)
 		log.Println("Error: " + err.Error())
-		return
 	}
 	defer newFile.Close()
-	config := new(quic.Config)
-
-	//Max flow control windows
-	config.MaxReceiveStreamFlowControlWindow = 0
-	config.MaxReceiveConnectionFlowControlWindow = 0
-	config.HandshakeTimeout = 10
-	connection, err := quic.Listen(server, generateTLSConfig(), config)
+	connection, err := quic.Listen(server, generateTLSConfig(), nil)
 	if err != nil {
 		log.Println("Error: " + err.Error())
-		connection.Close()
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
-		return
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
 	if err != nil {
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		log.Println("Error: " + err.Error())
-		return
 	}
 	defer session.Close(err)
 
 	stream, err := session.AcceptStream()
 	if err != nil {
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		log.Println("Error: " + err.Error())
-		return
 	}
 	defer stream.Close()
 
-	log.Println("transferring!")
-	notifyFrontEnd("Connected to " + friend.Name + ", starting transfer!")
+	log.Println("Recieving file!")
+	notifyFrontEnd("Connected")
 	start := time.Now()
 
 	io.Copy(newFile, stream)
@@ -162,7 +148,7 @@ func transferFile(server *net.UDPConn) error {
 	var file *os.File
 	var err error
 	if myPeerInfo.FileName != "" {
-		file, err = os.Open(myPeerInfo.FileName)
+		file, err = os.Open(myPeerInfo.FilePath)
 		if err != nil {
 			return err
 		}
@@ -170,7 +156,6 @@ func transferFile(server *net.UDPConn) error {
 	addr, _ := net.ResolveUDPAddr("udp", friend.PubIP)
 	laddr, _ := net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
 	public := true
-
 	err = holePunch(server, addr)
 	if err != nil {
 		server.Close()
@@ -178,7 +163,6 @@ func transferFile(server *net.UDPConn) error {
 		server, _ = net.ListenUDP("udp", laddr)
 		public = false
 	}
-
 	//If holepunching failed we know there is no peer in our network
 	if myPeerInfo.FileName != "" {
 		if public {
@@ -219,11 +203,13 @@ func getPeerInfo(server *net.UDPConn) error {
 	stream.Write(buff)
 	recvBuff := make([]byte, BUFFERSIZE)
 	len, _ := stream.Read(recvBuff)
+
 	if string(recvBuff[:len]) == "2" {
 		return errors.New("Both trying to send a file, please try again")
 	}
 	log.Println("Recieved peer information from server: " + string(recvBuff[:len]))
 	err = json.Unmarshal(recvBuff[:len], &friend)
+
 	if err != nil {
 		log.Println("Error:" + err.Error())
 		return err
@@ -270,20 +256,22 @@ func externalIP() (string, error) {
 	return "", errors.New("Not connected to network")
 }
 
-func initTransfer(peer1, peer2, fileName string) {
+func initTransfer(peer1, peer2, filePath string) {
 	myPeerInfo = new(Peer)
 	myPeerInfo.Name = strings.ToLower(peer1)
 	myPeerInfo.Friend = strings.ToLower(peer2)
-	myPeerInfo.FileName = fileName
-	if fileName != "" {
-		transferFile, err := os.Open(myPeerInfo.FileName)
+	myPeerInfo.FilePath = filePath
+
+	if myPeerInfo.FilePath != "" {
+		transferFile, err := os.Open(myPeerInfo.FilePath)
 		if err != nil {
 			log.Println("Error: " + err.Error())
 			transferFile.Close()
-			notifyFrontEnd("Couldn't open " + myPeerInfo.FileName)
+			notifyFrontEnd("Couldn't open " + myPeerInfo.FilePath)
 			return
 		}
 		fileInfo, _ := transferFile.Stat()
+		myPeerInfo.FileName = fileInfo.Name()
 		myPeerInfo.FileSize = fileInfo.Size()
 	}
 
@@ -299,7 +287,7 @@ func initTransfer(peer1, peer2, fileName string) {
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		server.Close()
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again1!")
 		return
 	}
 	log.Println("Listening on :" + server.LocalAddr().String())
@@ -308,7 +296,7 @@ func initTransfer(peer1, peer2, fileName string) {
 	err = getPeerInfo(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("Couldn't establish a connection, please try again!")
+		notifyFrontEnd("Couldn't establish a connection, please try again2!")
 		return
 	}
 	err = transferFile(server)
