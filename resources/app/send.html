@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="static/css/base.css"/>
+    <link rel="stylesheet" href="static/lib/astiloader/astiloader.css">
+    <link rel="stylesheet" href="static/lib/astimodaler/astimodaler.css">
+    <link rel="stylesheet" href="static/lib/astinotifier/astinotifier.css">
+    <link rel="stylesheet" href="static/lib/font-awesome-4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/box.css"/>
+</head>
+<body>
+    <div class="send-container">
+        <div class="form">
+            <div class="icon"></div>
+                <a class="btn btn-default btn-lg" href="index.html">
+                        <i class="fa fa-chevron-circle-left icon fa-4x back"></i></a><br><br>
+            </div>
+            <div class="input-group margin-bottom-sm">
+              <input class="form-control" type="text" placeholder="Your Username" id="Peer1">
+            </div>
+            <div class="input-group">
+              <input class="form-control" type="text" placeholder="Peer's Username" id="Peer2">
+            </div>
+            <div class="fileUpload" id="fileBox" ondragover="gray()" ondragleave="white()" ondrop="white()">
+                <input class="upload" type="file" id="FileName" onchange="uploadFile()">
+                <a id="text"><i class="fa fa-cloud-upload fa-5x upload"></i><br>
+                    click to select a file or drag it here
+                </a>
+            </div><br>
+            <div id="error-message"></div><br>
+            <div class="icon" onclick="sendFile()" id="postToApp">
+                <a class="btn btn-default btn-lg">
+                    <i class="fa fa-send-o fa-3x send"></i><br>send</a>
+            </div><br>
+            <div id="app-message"></div>
+        </div>
+    </div>
+    <script src="static/js/upload-box.js"></script>
+    <script src="static/js/index.js"></script>
+    <script src="static/lib/astiloader/astiloader.js"></script>
+    <script src="static/lib/astimodaler/astimodaler.js"></script>
+    <script src="static/lib/astinotifier/astinotifier.js"></script>
+</body>
+</html>

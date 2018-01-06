@@ -1,0 +1,41 @@
+#FileName {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    opacity: 0;
+}
+
+#fileBox {
+    position: relative;
+    display: inline-block;
+    width: 60%;
+    height: 40%;
+    border: 2px dotted #cacaca;
+    margin: 2%;
+    text-align: center;
+}
+
+.is-dragover {
+    background-color: #cacaca;
+}
+
+#text {
+    color: #333;
+    position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.upload {
+    color: #a5a5a5;
+    z-index: 99999;
+}
+
+.check {
+    color: #84b86d;
+    z-index: 99999;
+}
