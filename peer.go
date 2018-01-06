@@ -287,7 +287,7 @@ func initTransfer(peer1, peer2, filePath string) {
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		server.Close()
-		notifyFrontEnd("Couldn't establish a connection, please try again1!")
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
 	log.Println("Listening on :" + server.LocalAddr().String())
@@ -296,7 +296,7 @@ func initTransfer(peer1, peer2, filePath string) {
 	err = getPeerInfo(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("Couldn't establish a connection, please try again2!")
+		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
 	err = transferFile(server)
