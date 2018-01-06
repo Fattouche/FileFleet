@@ -16,7 +16,7 @@ document.addEventListener('astilectron-ready', function () {
 			case "Connected":
 				console.log("connected")
 				document.getElementById("postToApp").innerHTML = ""
-				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br>Receiving file from peer'
+				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file'
 				break
 			case "Finished":
 				console.log("FINISHED: " + message.payload)
