@@ -9,8 +9,11 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net"
+	"os"
+	"sync"
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
@@ -41,21 +44,24 @@ func createPeer(length int, buff []byte, publicIP string) (*Peer, error) {
 	return peer, nil
 }
 
-func checkPeer(peer *Peer, stream quic.Stream) {
+func checkPeer(peer *Peer, server *net.UDPConn) {
+	addr, err := net.ResolveUDPAddr("udp4", peer.PubIP)
+	if err != nil {
+		fmt.Println("Error in checkPeer: " + err.Error())
+	}
 	for {
 		if _, ok := peerMap[peer.Friend]; ok && peerMap[peer.Friend] != nil {
 			if !(peer.FileName == "" || peerMap[peer.Friend].FileName == "") {
 				fmt.Println("Error: Both peers trying to send a file")
-				stream.Write([]byte("2"))
-				time.Sleep(time.Millisecond * 500)
-				delete(peerMap, peer.Name)
+				server.WriteToUDP([]byte("0"), addr)
 				return
 			}
 			msgForPeer, err := json.Marshal(peerMap[peer.Friend])
 			if err != nil {
 				fmt.Println("Error marshalling in checkpeer: " + err.Error())
 			}
-			stream.Write(msgForPeer)
+			server.WriteToUDP([]byte("1"), addr)
+			server.WriteToUDP(msgForPeer, addr)
 
 			time.Sleep(time.Millisecond * 500)
 			delete(peerMap, peer.Name)
@@ -85,21 +91,41 @@ func generateTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 }
 
-func copyFile(length int, buff []byte, server *net.UDPConn, senderStream quic.Stream) {
-	addr := string(buff[:length])
-	udpAddr, err := net.ResolveUDPAddr("udp", addr)
-	if err != nil {
-		fmt.Println("Error :" + err.Error())
-	}
-	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
-	if err != nil {
-		fmt.Println("Error :" + err.Error())
-	}
-	recvStream, err := session.OpenStreamSync()
-	if err != nil {
-		fmt.Println("Error :" + err.Error())
-	}
-	io.Copy(recvStream, senderStream)
+func copyFile(length int, buff []byte, senderServer *net.UDPConn) {
+	receiverAddr := string(buff[:length])
+	var senderStream quic.Stream
+	var receiverStream quic.Stream
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		session, err := quic.DialAddr(receiverAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+		if err != nil {
+			fmt.Println("Error :" + err.Error())
+		}
+		receiverStream, err = session.OpenStreamSync()
+		if err != nil {
+			fmt.Println("Error :" + err.Error())
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		connection, err := quic.Listen(senderServer, generateTLSConfig(), nil)
+		if err != nil {
+			log.Println("Error: " + err.Error())
+		}
+		session, err := connection.Accept()
+		if err != nil {
+			log.Println("Error: " + err.Error())
+		}
+
+		senderStream, err = session.AcceptStream()
+		if err != nil {
+			log.Println("Error: " + err.Error())
+		}
+	}()
+	wg.Wait()
+	io.Copy(receiverStream, senderStream)
 }
 
 func main() {
@@ -115,39 +141,28 @@ func main() {
 
 	buff := make([]byte, 1000)
 	peerMap = make(map[string]*Peer)
-	connection, _ := quic.Listen(server, generateTLSConfig(), nil)
 
 	fmt.Println("Waiting for connections from peers")
 	for {
-
 		//Blocks waiting for a connection
-		session, err := connection.Accept()
-		fmt.Println("Got a connection from " + session.RemoteAddr().String())
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
-		defer session.Close(err)
-
-		stream, err := session.AcceptStream()
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
-		defer stream.Close()
-
-		len, err := stream.Read(buff)
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
+		len, addr, err := server.ReadFromUDP(buff)
 		if len < 20 {
 			copyFile(len, buff, server)
 		}
-		peer, err := createPeer(len, buff, session.RemoteAddr().String())
+		fmt.Println("Got a connection from " + addr.String())
+		if err != nil {
+			fmt.Println("Error reading from server: ", err)
+			os.Exit(1)
+		}
+		peer, err := createPeer(len, buff, addr.String())
 		if err != nil {
 			fmt.Println("Error parsing peer info: " + err.Error())
+			server.WriteToUDP([]byte("0"), addr)
 			continue
 		} else {
 			fmt.Println("Connecting " + peer.Name + " and " + peer.Friend)
+			server.WriteToUDP([]byte("1"), addr)
 		}
-		go checkPeer(peer, stream)
+		go checkPeer(peer, server)
 	}
 }
