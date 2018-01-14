@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"time"
@@ -84,6 +85,23 @@ func generateTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 }
 
+func copyFile(length int, buff []byte, server *net.UDPConn, senderStream quic.Stream) {
+	addr := string(buff[:length])
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		fmt.Println("Error :" + err.Error())
+	}
+	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
+	if err != nil {
+		fmt.Println("Error :" + err.Error())
+	}
+	recvStream, err := session.OpenStreamSync()
+	if err != nil {
+		fmt.Println("Error :" + err.Error())
+	}
+	io.Copy(recvStream, senderStream)
+}
+
 func main() {
 	addr, err := net.ResolveUDPAddr("udp4", ":8080")
 	server, err := net.ListenUDP("udp4", addr)
@@ -119,6 +137,9 @@ func main() {
 		len, err := stream.Read(buff)
 		if err != nil {
 			fmt.Println("Error: ", err)
+		}
+		if len < 20 {
+			copyFile(len, buff, server)
 		}
 		peer, err := createPeer(len, buff, session.RemoteAddr().String())
 		if err != nil {

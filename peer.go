@@ -66,15 +66,19 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
-func sendFile(server net.PacketConn, file *os.File, addr string) {
+func sendFile(server net.PacketConn, file *os.File, addr string) error {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
 		log.Println("Error: ", err)
+		return err
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
+	if addr==CentServerAddr{
+		stream.Write([]byte(friend.PubIP))
+	}
 
 	log.Println("Sending file!")
 	notifyFrontEnd("Connected")
@@ -85,6 +89,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
+	return nil
 }
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
@@ -166,9 +171,12 @@ func transferFile(server *net.UDPConn) error {
 	//If holepunching failed we know there is no peer in our network
 	if myPeerInfo.FileName != "" {
 		if public {
-			sendFile(server, file, friend.PubIP)
+			err = sendFile(server, file, friend.PubIP)
 		} else {
-			sendFile(server, file, friend.PrivIP)
+			err = sendFile(server, file, friend.PrivIP)
+		}
+		if err!=nil{
+			sendFile(server,file, CentServerAddr)
 		}
 	} else {
 		receiveFile(server, myPeerInfo.PrivIP)
