@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"os"
 	"strings"
 
 	"encoding/json"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
-	"github.com/asticode/go-astilog"
-	"github.com/pkg/errors"
 )
+
 const about string = "This is a simple P2P File transferer application that allows users to transfer files at extremely fast speeds using Googles quic protocol!"
 
 // AppInfo given by the front end.
@@ -35,63 +35,72 @@ type MessageOut struct {
 }
 
 func main() {
-	// Init
-	flag.Parse()
-	astilog.FlagInit()
-
-	// Run bootstrap
-	astilog.Debugf("Running app built at %s", BuiltAt)
-	if err := bootstrap.Run(bootstrap.Options{
-		Asset: Asset,
-		AstilectronOptions: astilectron.Options{
-			AppName:            AppName,
-			AppIconDarwinPath:  "resources/images/icon.icns",
-			AppIconDefaultPath: "resources/images/icon.png",
-		},
-		Debug:    *debug,
-		Homepage: "index.html",
-		MenuOptions: []*astilectron.MenuItemOptions{{
-			Label: astilectron.PtrStr("File"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("About"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						if err := bootstrap.SendMessage(w, "about", about, func(m *bootstrap.MessageIn) {
-							var s string
-							if err := json.Unmarshal(m.Payload, &s); err != nil {
-								astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
-								return
-							}
-							astilog.Infof("About modal has been displayed and payload is %s!", s)
-						}); err != nil {
-							astilog.Error(errors.Wrap(err, "sending about event failed"))
-						}
-						return
-					},
-				},
-				{Role: astilectron.MenuItemRoleClose},
-			},
-		}},
-		OnWait: func(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-			w = iw
-			go func() {
-				if err := bootstrap.SendMessage(w, "check.out.menu", "WE ARE SENDING"); err != nil {
-					astilog.Error(errors.Wrap(err, "sending check.out.menu event failed"))
-				}
-			}()
-			return nil
-		},
-		MessageHandler: handleMessages,
-		RestoreAssets:  RestoreAssets,
-		WindowOptions: &astilectron.WindowOptions{
-			BackgroundColor: astilectron.PtrStr("#333"),
-			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(700),
-			Width:           astilectron.PtrInt(700),
-		},
-	}); err != nil {
-		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
+	peer1 := strings.ToLower(os.Args[1])
+	peer2 := strings.ToLower(os.Args[2])
+	fileName := ""
+	if len(os.Args) == 4 {
+		fileName = os.Args[3]
 	}
+	initTransfer(peer1, peer2, fileName)
+	return
+	/*
+		// Init
+		flag.Parse()
+		astilog.FlagInit()
+
+		// Run bootstrap
+		astilog.Debugf("Running app built at %s", BuiltAt)
+		if err := bootstrap.Run(bootstrap.Options{
+			Asset: Asset,
+			AstilectronOptions: astilectron.Options{
+				AppName:            AppName,
+				AppIconDarwinPath:  "resources/images/icon.icns",
+				AppIconDefaultPath: "resources/images/icon.png",
+			},
+			Debug:    *debug,
+			Homepage: "index.html",
+			MenuOptions: []*astilectron.MenuItemOptions{{
+				Label: astilectron.PtrStr("File"),
+				SubMenu: []*astilectron.MenuItemOptions{
+					{
+						Label: astilectron.PtrStr("About"),
+						OnClick: func(e astilectron.Event) (deleteListener bool) {
+							if err := bootstrap.SendMessage(w, "about", about, func(m *bootstrap.MessageIn) {
+								var s string
+								if err := json.Unmarshal(m.Payload, &s); err != nil {
+									astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
+									return
+								}
+								astilog.Infof("About modal has been displayed and payload is %s!", s)
+							}); err != nil {
+								astilog.Error(errors.Wrap(err, "sending about event failed"))
+							}
+							return
+						},
+					},
+					{Role: astilectron.MenuItemRoleClose},
+				},
+			}},
+			OnWait: func(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+				w = iw
+				go func() {
+					if err := bootstrap.SendMessage(w, "check.out.menu", "WE ARE SENDING"); err != nil {
+						astilog.Error(errors.Wrap(err, "sending check.out.menu event failed"))
+					}
+				}()
+				return nil
+			},
+			MessageHandler: handleMessages,
+			RestoreAssets:  RestoreAssets,
+			WindowOptions: &astilectron.WindowOptions{
+				BackgroundColor: astilectron.PtrStr("#333"),
+				Center:          astilectron.PtrBool(true),
+				Height:          astilectron.PtrInt(700),
+				Width:           astilectron.PtrInt(700),
+			},
+		}); err != nil {
+			astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
+		}*/
 }
 
 // handleMessages handles messages
