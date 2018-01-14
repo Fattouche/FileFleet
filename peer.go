@@ -76,7 +76,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
-	if addr==CentServerAddr{
+	if addr == CentServerAddr {
 		stream.Write([]byte(friend.PubIP))
 	}
 
@@ -175,8 +175,8 @@ func transferFile(server *net.UDPConn) error {
 		} else {
 			err = sendFile(server, file, friend.PrivIP)
 		}
-		if err!=nil{
-			sendFile(server,file, CentServerAddr)
+		if err != nil {
+			sendFile(server, file, CentServerAddr)
 		}
 	} else {
 		receiveFile(server, myPeerInfo.PrivIP)
@@ -188,41 +188,37 @@ func transferFile(server *net.UDPConn) error {
 func getPeerInfo(server *net.UDPConn) error {
 	buff, err := json.Marshal(myPeerInfo)
 	if err != nil {
-		log.Println("Error:" + err.Error())
-		return err
+		fmt.Println("Error:" + err.Error())
 	}
-	centUDPAddr, err := net.ResolveUDPAddr("udp", CentServerAddr)
+	serverAddr, err := net.ResolveUDPAddr("udp", "18.221.47.86:8080")
 	if err != nil {
-		log.Println("Error:" + err.Error())
-		return err
+		fmt.Println("Error:" + err.Error())
 	}
-	session, err := quic.Dial(server, centUDPAddr, CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
-	if err != nil {
-		log.Println("Error:" + err.Error())
-		return err
+	server.WriteToUDP(buff, serverAddr)
+	connected := false
+	buf := make([]byte, 1000)
+	go func() {
+		for connected != true {
+			server.WriteToUDP(buff, serverAddr)
+			time.Sleep(3000 * time.Millisecond)
+		}
+	}()
+	for {
+		len, _, _ := server.ReadFromUDP(buf)
+		if string(buf[:len]) == "1" {
+			connected = true
+		} else if string(buf[:len]) == "0" {
+			fmt.Println("Server error, please reconnect")
+			return errors.New("Invalid config")
+		} else {
+			fmt.Println("Recieved peer information from server: " + string(buf[:len]))
+			err = json.Unmarshal(buf[:len], &friend)
+			if err != nil {
+				fmt.Println("Error: " + err.Error())
+			}
+			break
+		}
 	}
-	defer session.Close(err)
-	stream, err := session.OpenStreamSync()
-	if err != nil {
-		log.Println("Error:" + err.Error())
-		return err
-	}
-	defer stream.Close()
-	stream.Write(buff)
-	recvBuff := make([]byte, BUFFERSIZE)
-	len, _ := stream.Read(recvBuff)
-
-	if string(recvBuff[:len]) == "2" {
-		return errors.New("Both trying to send a file, please try again")
-	}
-	log.Println("Recieved peer information from server: " + string(recvBuff[:len]))
-	err = json.Unmarshal(recvBuff[:len], &friend)
-
-	if err != nil {
-		log.Println("Error:" + err.Error())
-		return err
-	}
-
 	return nil
 }
 

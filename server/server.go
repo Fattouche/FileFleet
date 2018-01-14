@@ -125,6 +125,7 @@ func copyFile(length int, buff []byte, senderServer *net.UDPConn) {
 		}
 	}()
 	wg.Wait()
+	fmt.Println("Copying file from sender to " + receiverAddr)
 	io.Copy(receiverStream, senderStream)
 }
 
@@ -147,7 +148,7 @@ func main() {
 		//Blocks waiting for a connection
 		len, addr, err := server.ReadFromUDP(buff)
 		if len < 20 {
-			copyFile(len, buff, server)
+			go copyFile(len, buff, server)
 		}
 		fmt.Println("Got a connection from " + addr.String())
 		if err != nil {
