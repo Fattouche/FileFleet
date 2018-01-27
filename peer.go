@@ -68,6 +68,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 func sendThroughServer(file *os.File, addr string) error {
 	notifyFrontEnd("Couldn't connect directly to peer, sending through server ...")
 	conn, err := net.Dial("tcp", CentServerAddr)
+	defer conn.Close()
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
@@ -119,6 +120,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 func receieveFromServer(file *os.File) error {
 	notifyFrontEnd("Couldn't connect directly to peer, receiving from server ...")
 	conn, err := net.Dial("tcp", CentServerAddr)
+	defer conn.Close()
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
@@ -145,6 +147,7 @@ func receiveFile(server net.PacketConn, addr string) error {
 	newFile, err := os.Create(friend.FileName)
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		notifyFrontEnd(err.Error()+"")
 		return err
 	}
 	defer newFile.Close()
@@ -360,7 +363,7 @@ func initTransfer(peer1, peer2, filePath string) {
 	err = transferFile(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("We are experiencing issues, please try again later")
+		notifyFrontEnd("We are experiencing issues, please try again later: "+ err.Error())
 		return
 	}
 }
