@@ -65,12 +65,45 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 	}
 }
 
+func sendThroughServer(file *os.File, addr string) error {
+	notifyFrontEnd("Couldn't connect directly to peer, sending through server... \nyou may want to exit if the file is large")
+	conn, err := net.Dial("tcp", CentServerAddr)
+	defer conn.Close()
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+		return err
+	}
+	defer conn.Close()
+	buff, _ := json.Marshal(myPeerInfo)
+	conn.Write(buff)
+	recvBuff := make([]byte, 10)
+	_, err = conn.Read(recvBuff)
+	if err != nil {
+		return err
+	}
+	log.Println("Sending through server")
+	start := time.Now()
+	_,err = io.Copy(conn, file)
+	if err!=nil{
+		notifyFrontEnd("Couldn't complete the transfer, something went wrong")
+		return err
+	}
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
+	return nil
+}
+
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
-func sendFile(server net.PacketConn, file *os.File, addr string) {
+func sendFile(server net.PacketConn, file *os.File, addr string) error {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
 		log.Println("Error: ", err)
+		server.Close()
+		err := sendThroughServer(file, addr)
+		return err
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
@@ -80,34 +113,72 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	notifyFrontEnd("Connected")
 	start := time.Now()
 
-	io.Copy(stream, file)
+	_,err = io.Copy(stream, file)
+	if err!=nil{
+		notifyFrontEnd("Couldn't complete the transfer, something went wrong")
+		return err
+	}
 
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
+	return nil
+}
+
+func receieveFromServer(file *os.File) error {
+	notifyFrontEnd("Couldn't connect directly to peer, receiving from server... \nyou may want to exit if the file is large")
+	conn, err := net.Dial("tcp", CentServerAddr)
+	defer conn.Close()
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+		return err
+	}
+	defer conn.Close()
+	buff, _ := json.Marshal(myPeerInfo)
+	conn.Write(buff)
+	log.Println("Receiving from server")
+	start := time.Now()
+	_, err = io.Copy(file, conn)
+	if err != nil {
+		fmt.Println("Error receiving")
+		return err
+	}
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
+	return nil
 }
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
-func receiveFile(server net.PacketConn, addr string) {
+func receiveFile(server net.PacketConn, addr string) error {
 	newFile, err := os.Create(friend.FileName)
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		notifyFrontEnd(err.Error()+"")
+		return err
 	}
 	defer newFile.Close()
+	server.SetReadDeadline(time.Now().Add(time.Second * 5))
 	connection, err := quic.Listen(server, generateTLSConfig(), nil)
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		return err
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		server.Close()
+		err := receieveFromServer(newFile)
+		return err
 	}
 	defer session.Close(err)
 
 	stream, err := session.AcceptStream()
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		return err
 	}
 	defer stream.Close()
 
@@ -117,9 +188,10 @@ func receiveFile(server net.PacketConn, addr string) {
 
 	io.Copy(newFile, stream)
 
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
+	return nil
 }
 
 //  generateTLSConfig is used to create a basic tls configuration for quic protocol.
@@ -166,14 +238,11 @@ func transferFile(server *net.UDPConn) error {
 	//If holepunching failed we know there is no peer in our network
 	if myPeerInfo.FileName != "" {
 		if public {
-			sendFile(server, file, friend.PubIP)
-		} else {
-			sendFile(server, file, friend.PrivIP)
+			return sendFile(server, file, friend.PubIP)
 		}
-	} else {
-		receiveFile(server, myPeerInfo.PrivIP)
+		return sendFile(server, file, friend.PrivIP)
 	}
-	return nil
+	return receiveFile(server, myPeerInfo.PrivIP)
 }
 
 // getPeerInfo communicates with the centralized server to exchange information between peers.
@@ -302,7 +371,11 @@ func initTransfer(peer1, peer2, filePath string) {
 	err = transferFile(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("Couldn't open " + myPeerInfo.FileName)
+		if strings.Contains(err.Error(),"permission"){
+			notifyFrontEnd(""+err.Error())
+		}else{
+			notifyFrontEnd("We are experiencing issues, please try again later")
+		}
 		return
 	}
 }
