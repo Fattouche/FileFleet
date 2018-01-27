@@ -100,15 +100,16 @@ func sendToPeers(conn net.Conn) {
 		fmt.Println("Error: ", err)
 	}
 	if _, ok := tcpMap[peer.Friend]; ok && tcpMap[peer.Friend] != nil {
-		fmt.Println("Recieved connections! Copying!")
+		fmt.Println("Recieved both tcp connections, copying")
 		conn2 := tcpMap[peer.Friend]
 		if peer.FileName != "" {
 			io.Copy(conn, conn2)
 		} else {
 			io.Copy(conn2, conn)
 		}
+		fmt.Println("Finished copying!")
 	} else {
-		fmt.Println("Recieved connection from ", conn.RemoteAddr())
+		fmt.Println("Recieved tcp connection from ", conn.RemoteAddr())
 		tcpMap[peer.Name] = conn
 	}
 }
@@ -143,6 +144,7 @@ func main() {
 
 	buff := make([]byte, 1000)
 	peerMap = make(map[string]*Peer)
+	tcpMap = make(map[string]net.Conn)
 	connection, _ := quic.Listen(server, generateTLSConfig(), nil)
 
 	fmt.Println("Waiting for connections from peers")
