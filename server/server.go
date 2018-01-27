@@ -118,6 +118,8 @@ func sendToPeers(conn net.Conn) {
 			}
 		}
 		fmt.Println("Finished copying!")
+		delete(tcpMap, peer.Friend)
+		delete(tcpMap, peer.Name)
 	} else {
 		fmt.Println("Recieved tcp connection from ", conn.RemoteAddr())
 		tcpMap[peer.Name] = conn
