@@ -152,7 +152,7 @@ func receieveFromServer(file *os.File) error {
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
 func receiveFile(server net.PacketConn, addr string) error {
-	newFile, err := os.Create("/Users/fattouche/Desktop/"+friend.FileName)
+	newFile, err := os.Create(friend.FileName)
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		notifyFrontEnd(err.Error()+"")
