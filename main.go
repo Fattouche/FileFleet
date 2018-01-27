@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"os"
 	"strings"
 
 	"github.com/asticode/go-astilectron"
+	bootstrap "github.com/asticode/go-astilectron-bootstrap"
+	astilog "github.com/asticode/go-astilog"
+	"github.com/pkg/errors"
 )
 
 const about string = "This is a simple P2P File transferer application that allows users to transfer files at extremely fast speeds using Googles quic protocol!"
@@ -32,18 +35,7 @@ type MessageOut struct {
 }
 
 func main() {
-
-	peer1 := strings.ToLower(os.Args[1])
-	peer2 := strings.ToLower(os.Args[2])
-	fileName := ""
-	if len(os.Args) == 4 {
-		fileName = os.Args[3]
-	}
-	initTransfer(peer1, peer2, fileName)
-	return
-}
-
-/*// Init
+	// Init
 	flag.Parse()
 	astilog.FlagInit()
 
@@ -135,8 +127,4 @@ func notifyFrontEnd(msg string) {
 		bootstrap.SendMessage(w, "Error", msg, func(m *bootstrap.MessageIn) {
 		})
 	}
-}*/
-
-func notifyFrontEnd(msg string) {
-	return
 }
