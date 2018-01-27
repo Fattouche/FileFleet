@@ -66,7 +66,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 func sendThroughServer(file *os.File, addr string) error {
-	notifyFrontEnd("Couldn't connect directly to peer, sending through server ...")
+	notifyFrontEnd("Couldn't connect directly to peer, sending through server... \nyou may want to exit if the file is large")
 	conn, err := net.Dial("tcp", CentServerAddr)
 	defer conn.Close()
 	if err != nil {
@@ -84,8 +84,12 @@ func sendThroughServer(file *os.File, addr string) error {
 	}
 	log.Println("Sending through server")
 	start := time.Now()
-	io.Copy(conn, file)
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	_,err = io.Copy(conn, file)
+	if err!=nil{
+		notifyFrontEnd("Couldn't complete the transfer, something went wrong")
+		return err
+	}
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
 	return nil
@@ -109,16 +113,20 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 	notifyFrontEnd("Connected")
 	start := time.Now()
 
-	io.Copy(stream, file)
+	_,err = io.Copy(stream, file)
+	if err!=nil{
+		notifyFrontEnd("Couldn't complete the transfer, something went wrong")
+		return err
+	}
 
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
 	return nil
 }
 
 func receieveFromServer(file *os.File) error {
-	notifyFrontEnd("Couldn't connect directly to peer, receiving from server ...")
+	notifyFrontEnd("Couldn't connect directly to peer, receiving from server... \nyou may want to exit if the file is large")
 	conn, err := net.Dial("tcp", CentServerAddr)
 	defer conn.Close()
 	if err != nil {
@@ -136,7 +144,7 @@ func receieveFromServer(file *os.File) error {
 		fmt.Println("Error receiving")
 		return err
 	}
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
 	return nil
@@ -144,7 +152,7 @@ func receieveFromServer(file *os.File) error {
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
 func receiveFile(server net.PacketConn, addr string) error {
-	newFile, err := os.Create(friend.FileName)
+	newFile, err := os.Create("/Users/fattouche/Desktop/"+friend.FileName)
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		notifyFrontEnd(err.Error()+"")
@@ -180,7 +188,7 @@ func receiveFile(server net.PacketConn, addr string) error {
 
 	io.Copy(newFile, stream)
 
-	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	notifier := fmt.Sprintf("Finished transfer in %.2f seconds!", time.Since(start).Seconds())
 	log.Println(notifier)
 	notifyFrontEnd(notifier)
 	return nil
@@ -363,7 +371,11 @@ func initTransfer(peer1, peer2, filePath string) {
 	err = transferFile(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
-		notifyFrontEnd("We are experiencing issues, please try again later: "+ err.Error())
+		if strings.Contains(err.Error(),"permission"){
+			notifyFrontEnd(""+err.Error())
+		}else{
+			notifyFrontEnd("We are experiencing issues, please try again later")
+		}
 		return
 	}
 }
