@@ -103,9 +103,17 @@ func sendToPeers(conn net.Conn) {
 		fmt.Println("Recieved both tcp connections, copying")
 		conn2 := tcpMap[peer.Friend]
 		if peer.FileName != "" {
-			io.Copy(conn, conn2)
+			conn.Write([]byte("1"))
+			_, err := io.Copy(conn2, conn)
+			if err != nil {
+				fmt.Println("Error: ", err)
+			}
 		} else {
-			io.Copy(conn2, conn)
+			conn2.Write([]byte("1"))
+			_, err := io.Copy(conn, conn2)
+			if err != nil {
+				fmt.Println("Error: ", err)
+			}
 		}
 		fmt.Println("Finished copying!")
 	} else {

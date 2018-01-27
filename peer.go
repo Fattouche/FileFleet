@@ -66,7 +66,6 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 func sendThroughServer(file *os.File, addr string) error {
-	log.Println("Sending through server")
 	notifyFrontEnd("Couldn't connect directly to peer, sending through server ...")
 	conn, err := net.Dial("tcp", CentServerAddr)
 	if err != nil {
@@ -77,6 +76,11 @@ func sendThroughServer(file *os.File, addr string) error {
 	defer conn.Close()
 	buff, _ := json.Marshal(myPeerInfo)
 	conn.Write(buff)
+	recvBuff := make([]byte, 10)
+	_, err = conn.Read(recvBuff)
+	if err != nil {
+		return err
+	}
 	log.Println("Sending through server")
 	start := time.Now()
 	io.Copy(conn, file)
@@ -224,12 +228,10 @@ func transferFile(server *net.UDPConn) error {
 	if myPeerInfo.FileName != "" {
 		if public {
 			return sendFile(server, file, friend.PubIP)
-		} else {
-			return sendFile(server, file, friend.PrivIP)
 		}
-	} else {
-		return receiveFile(server, myPeerInfo.PrivIP)
+		return sendFile(server, file, friend.PrivIP)
 	}
+	return receiveFile(server, myPeerInfo.PrivIP)
 }
 
 // getPeerInfo communicates with the centralized server to exchange information between peers.
