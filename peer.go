@@ -74,6 +74,8 @@ func sendThroughServer(file *os.File, addr string) {
 		notifyFrontEnd("We are experiencing network problems, try again later.")
 	}
 	defer conn.Close()
+	buff, _ := json.Marshal(myPeerInfo)
+	conn.Write(buff)
 	log.Println("Sending through server")
 	start := time.Now()
 	io.Copy(conn, file)
@@ -114,6 +116,8 @@ func receieveFromServer(file *os.File) {
 		notifyFrontEnd("We are experiencing network problems, try again later.")
 	}
 	defer conn.Close()
+	buff, _ := json.Marshal(myPeerInfo)
+	conn.Write(buff)
 	log.Println("receiving from server")
 	start := time.Now()
 	io.Copy(file, conn)

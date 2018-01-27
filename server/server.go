@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"log"
 	"math/big"
 	"net"
+	"os"
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
@@ -26,6 +29,7 @@ type Peer struct {
 }
 
 var peerMap map[string]*Peer
+var tcpMap map[string]net.Conn
 
 func createPeer(length int, buff []byte, publicIP string) (*Peer, error) {
 	peer := new(Peer)
@@ -84,6 +88,47 @@ func generateTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 }
 
+func sendToPeers(conn net.Conn) {
+	peer := new(Peer)
+	buff := make([]byte, 1024)
+	length, err := conn.Read(buff)
+	if err != nil {
+		fmt.Println("Error reading: ", err)
+	}
+	err = json.Unmarshal(buff[:length], &peer)
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
+	if _, ok := tcpMap[peer.Friend]; ok && tcpMap[peer.Friend] != nil {
+		fmt.Println("Recieved connections! Copying!")
+		conn2 := tcpMap[peer.Friend]
+		if peer.FileName != "" {
+			io.Copy(conn, conn2)
+		} else {
+			io.Copy(conn2, conn)
+		}
+	} else {
+		fmt.Println("Recieved connection from ", conn.RemoteAddr())
+		tcpMap[peer.Name] = conn
+	}
+}
+
+func waitTransfer() {
+	server, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
+	defer server.Close()
+	for {
+		connection, err := server.Accept()
+		if err != nil {
+			log.Println("Error: ", err)
+		}
+		go sendToPeers(connection)
+	}
+}
+
 func main() {
 	addr, err := net.ResolveUDPAddr("udp4", ":8080")
 	server, err := net.ListenUDP("udp4", addr)
@@ -94,6 +139,7 @@ func main() {
 		panic(err)
 	}
 	defer server.Close()
+	go waitTransfer()
 
 	buff := make([]byte, 1000)
 	peerMap = make(map[string]*Peer)
