@@ -65,12 +65,30 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 	}
 }
 
+func sendThroughServer(file *os.File, addr string) {
+	log.Println("Sending through server")
+	notifyFrontEnd("Couldn't connect directly to peer, sending through server ...")
+	conn, err := net.Dial("tcp", CentServerAddr)
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+	}
+	defer conn.Close()
+	log.Println("Sending through server")
+	start := time.Now()
+	io.Copy(conn, file)
+	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
+}
+
 // sendFile sends a file from the server to the addr using Google's quic protocol on top of UDP.
 func sendFile(server net.PacketConn, file *os.File, addr string) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	session, err := quic.Dial(server, udpAddr, addr, &tls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
 		log.Println("Error: ", err)
+		sendThroughServer(file, addr)
 	}
 	defer session.Close(err)
 	stream, err := session.OpenStreamSync()
@@ -87,6 +105,23 @@ func sendFile(server net.PacketConn, file *os.File, addr string) {
 	notifyFrontEnd(notifier)
 }
 
+func receieveFromServer(file *os.File) {
+	log.Println("Reciving from server")
+	notifyFrontEnd("Couldn't connect directly to peer, receiving from server ...")
+	conn, err := net.Dial("tcp", CentServerAddr)
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+	}
+	defer conn.Close()
+	log.Println("receiving from server")
+	start := time.Now()
+	io.Copy(file, conn)
+	notifier := fmt.Sprintf("Finished transfer in %f seconds!", time.Since(start).Seconds())
+	log.Println(notifier)
+	notifyFrontEnd(notifier)
+}
+
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
 func receiveFile(server net.PacketConn, addr string) {
 	newFile, err := os.Create(friend.FileName)
@@ -94,6 +129,7 @@ func receiveFile(server net.PacketConn, addr string) {
 		log.Println("Error: " + err.Error())
 	}
 	defer newFile.Close()
+	server.SetReadDeadline(time.Now().Add(time.Second * 5))
 	connection, err := quic.Listen(server, generateTLSConfig(), nil)
 	if err != nil {
 		log.Println("Error: " + err.Error())
@@ -102,6 +138,9 @@ func receiveFile(server net.PacketConn, addr string) {
 	session, err := connection.Accept()
 	if err != nil {
 		log.Println("Error: " + err.Error())
+		server.Close()
+		receieveFromServer(newFile)
+		return
 	}
 	defer session.Close(err)
 
