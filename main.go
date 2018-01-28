@@ -18,13 +18,14 @@ type AppInfo struct {
 	Peer1    string
 	Peer2    string
 	FileName string
+	Directory string
 }
 
 // Vars
 var (
 	AppName string
 	BuiltAt string
-	debug   = flag.Bool("d", false, "enables the debug mode")
+	debug   = flag.Bool("d", true, "enables the debug mode")
 	w       *astilectron.Window
 )
 
@@ -115,6 +116,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 	info := new(AppInfo)
 	var msg string
 	info.FileName = ""
+	info.Directory= ""
 	if len(m.Payload) > 0 {
 		err = json.Unmarshal(m.Payload, &msg)
 		if err != nil {
@@ -126,7 +128,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			payload = err.Error()
 			return
 		}
-		go initTransfer(info.Peer1, info.Peer2, info.FileName)
+		go initTransfer(info.Peer1, info.Peer2, info.FileName, info.Directory)
 		payload = "recieved"
 	}
 	return

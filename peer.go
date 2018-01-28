@@ -33,6 +33,7 @@ type Peer struct {
 
 var friend Peer
 var myPeerInfo *Peer
+var saveLocation string
 
 // BUFFERSIZE used to read from file.
 const BUFFERSIZE = 48000
@@ -165,7 +166,7 @@ func receieveFromServer(file *os.File) error {
 
 // receiveFile recieves a file from whoever establishes a quic connection with the udp server.
 func receiveFile(server net.PacketConn, addr string) error {
-	newFile, err := os.Create(friend.FileName)
+	newFile, err := os.Create(saveLocation+"/"+friend.FileName)
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		notifyFrontEnd(err.Error()+"")
@@ -339,11 +340,12 @@ func externalIP() (string, error) {
 	return "", errors.New("Not connected to network")
 }
 
-func initTransfer(peer1, peer2, filePath string) {
+func initTransfer(peer1, peer2, filePath, directory string) {
 	myPeerInfo = new(Peer)
 	myPeerInfo.Name = strings.ToLower(peer1)
 	myPeerInfo.Friend = strings.ToLower(peer2)
 	myPeerInfo.FilePath = filePath
+	saveLocation = directory
 
 	if myPeerInfo.FilePath != "" {
 		transferFile, err := os.Open(myPeerInfo.FilePath)
