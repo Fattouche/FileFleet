@@ -59,6 +59,14 @@ function validateInput(checkFile) {
 			return false
 		}
 		returnMessage["FileName"] = file
+	}else{
+		var directory = document.getElementById("fileInput").files[0].path
+		if (directory.length == 0) {
+			console.log("Error, invalid directory")
+			document.getElementById("error-message").innerHTML = "Please choose a save location"
+			return false
+		}
+		returnMessage["Directory"] = directory
 	}
 	document.getElementById("error-message").innerHTML = ""
 	console.log(returnMessage)
