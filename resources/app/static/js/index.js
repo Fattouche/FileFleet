@@ -21,7 +21,7 @@ document.addEventListener('astilectron-ready', function () {
 			case "Server":
 				console.log("Connected through server, transfer may take longer")
 				document.getElementById("postToApp").innerHTML = ""
-				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file through server<br><br>this may take a while'
+				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file through server<br><br>This may take a while'
 				break
 			case "Finished":
 				console.log("FINISHED: " + message.payload)
