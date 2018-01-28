@@ -67,7 +67,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 func sendThroughServer(file *os.File, addr string) error {
-	notifyFrontEnd("Connected through server, transfer may take longer")
+	notifyFrontEnd("Server")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
@@ -133,7 +133,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 }
 
 func receieveFromServer(file *os.File) error {
-	notifyFrontEnd("Connected through server, transfer may take longer")
+	notifyFrontEnd("Server")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
