@@ -33,6 +33,7 @@ type MessageOut struct {
 
 func main() {
 
+	/*
 	peer1 := strings.ToLower(os.Args[1])
 	peer2 := strings.ToLower(os.Args[2])
 	fileName := ""
@@ -41,9 +42,10 @@ func main() {
 	}
 	initTransfer(peer1, peer2, fileName)
 	return
-}
+	*/
+
 	// Init
-	/*flag.Parse()
+	flag.Parse()
 	astilog.FlagInit()
 
 	// Run bootstrap
@@ -134,8 +136,4 @@ func notifyFrontEnd(msg string) {
 		bootstrap.SendMessage(w, "Error", msg, func(m *bootstrap.MessageIn) {
 		})
 	}
-}*/
-
-func notifyFrontEnd(msg string) {
-	return
 }
