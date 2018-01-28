@@ -106,16 +106,10 @@ func sendToPeers(conn quic.Stream) {
 		defer conn.Close()
 		if peer.FileName != "" {
 			conn.Write([]byte("1"))
-			_, err := io.Copy(conn2, conn)
-			if err != nil {
-				fmt.Println("Error: ", err)
-			}
+			io.Copy(conn2, conn)
 		} else {
 			conn2.Write([]byte("1"))
-			_, err := io.Copy(conn, conn2)
-			if err != nil {
-				fmt.Println("Error: ", err)
-			}
+			io.Copy(conn, conn2)
 		}
 		fmt.Println("Finished copying!")
 		delete(connMap, peer.Friend)
