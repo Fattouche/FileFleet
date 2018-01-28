@@ -29,3 +29,4 @@ vendor_astilectron_bundler/*
 bind*
 *.syso
 Godeps/
+*.json
