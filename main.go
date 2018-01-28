@@ -139,6 +139,9 @@ func notifyFrontEnd(msg string) {
 	} else if strings.Contains(msg, "Connected") {
 		bootstrap.SendMessage(w, "Connected", msg, func(m *bootstrap.MessageIn) {
 		})
+	} else if strings.Contains(msg, "Server") {
+			bootstrap.SendMessage(w, "Server", msg, func(m *bootstrap.MessageIn) {
+		})
 	} else {
 		bootstrap.SendMessage(w, "Error", msg, func(m *bootstrap.MessageIn) {
 		})
