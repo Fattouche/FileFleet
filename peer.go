@@ -67,24 +67,30 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 
 func sendThroughServer(file *os.File, addr string) error {
 	notifyFrontEnd("Couldn't connect directly to peer, sending through server... \nyou may want to exit if the file is large")
-	conn, err := net.Dial("tcp", CentServerAddr)
-	defer conn.Close()
+	//conn, err := net.Dial("tcp", CentServerAddr)
+	conn,err:=quic.DialAddr(CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+	defer conn.Close(err)
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
 		return err
 	}
-	defer conn.Close()
+	stream, err := conn.OpenStreamSync()
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+		return err
+	}
 	buff, _ := json.Marshal(myPeerInfo)
-	conn.Write(buff)
+	stream.Write(buff)
 	recvBuff := make([]byte, 10)
-	_, err = conn.Read(recvBuff)
+	_, err = stream.Read(recvBuff)
 	if err != nil {
 		return err
 	}
 	log.Println("Sending through server")
 	start := time.Now()
-	_,err = io.Copy(conn, file)
+	_,err = io.Copy(stream, file)
 	if err!=nil{
 		notifyFrontEnd("Couldn't complete the transfer, something went wrong")
 		return err
@@ -127,19 +133,25 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 
 func receieveFromServer(file *os.File) error {
 	notifyFrontEnd("Couldn't connect directly to peer, receiving from server... \nyou may want to exit if the file is large")
-	conn, err := net.Dial("tcp", CentServerAddr)
-	defer conn.Close()
+	//conn, err := net.Dial("tcp", CentServerAddr)
+	conn,err:=quic.DialAddr(CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+	defer conn.Close(err)
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
 		return err
 	}
-	defer conn.Close()
+	stream, err := conn.OpenStreamSync()
+	if err != nil {
+		log.Println("Couldnt connect to central server")
+		notifyFrontEnd("We are experiencing network problems, try again later.")
+		return err
+	}
 	buff, _ := json.Marshal(myPeerInfo)
-	conn.Write(buff)
+	stream.Write(buff)
 	log.Println("Receiving from server")
 	start := time.Now()
-	_, err = io.Copy(file, conn)
+	_, err = io.Copy(file, stream)
 	if err != nil {
 		fmt.Println("Error receiving")
 		return err
