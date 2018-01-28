@@ -35,7 +35,6 @@ type MessageOut struct {
 }
 
 func main() {
-
 	/*
 	peer1 := strings.ToLower(os.Args[1])
 	peer2 := strings.ToLower(os.Args[2])
@@ -45,6 +44,11 @@ func main() {
 	}
 	initTransfer(peer1, peer2, fileName)
 	return
+}
+
+func notifyFrontEnd(msg string){
+	return
+}
 	*/
 
 	// Init
