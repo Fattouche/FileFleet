@@ -25,7 +25,7 @@ type AppInfo struct {
 var (
 	AppName string
 	BuiltAt string
-	debug   = flag.Bool("d", true, "enables the debug mode")
+	debug   = flag.Bool("d", false, "enables the debug mode")
 	w       *astilectron.Window
 )
 

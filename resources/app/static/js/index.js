@@ -21,7 +21,7 @@ document.addEventListener('astilectron-ready', function () {
 			case "Server":
 				console.log("Connected through server, transfer may take longer")
 				document.getElementById("postToApp").innerHTML = ""
-				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file through server<br><br>This may take a while'
+				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Could not connect to peer<br><br>Transfering file through server<br><br>This may take a while'
 				break
 			case "Finished":
 				console.log("FINISHED: " + message.payload)
@@ -59,7 +59,7 @@ function validateInput(checkFile) {
 			return false
 		}
 		returnMessage["FileName"] = file
-	}else{
+	} else {
 		var directory = document.getElementById("fileInput").files[0].path
 		if (directory.length == 0) {
 			console.log("Error, invalid directory")
