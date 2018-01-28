@@ -18,6 +18,11 @@ document.addEventListener('astilectron-ready', function () {
 				document.getElementById("postToApp").innerHTML = ""
 				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file'
 				break
+			case "Connected through server, transfer may take longer":
+				console.log("Connected through server, transfer may take longer")
+				document.getElementById("postToApp").innerHTML = ""
+				document.getElementById("postToApp").innerHTML = '<i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br><br>Transfering file'
+				break
 			case "Finished":
 				console.log("FINISHED: " + message.payload)
 				document.getElementById("postToApp").innerHTML = ""

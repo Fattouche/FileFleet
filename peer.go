@@ -67,7 +67,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 func sendThroughServer(file *os.File, addr string) error {
-	notifyFrontEnd("Couldn't connect directly to peer, sending through server... \nyou may want to exit if the file is large")
+	notifyFrontEnd("Connected through server, transfer may take longer")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
