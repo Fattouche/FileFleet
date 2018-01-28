@@ -172,7 +172,7 @@ func receiveFile(server net.PacketConn, addr string) error {
 		return err
 	}
 	defer newFile.Close()
-	server.SetReadDeadline(time.Now().Add(time.Second * 5))
+	server.SetReadDeadline(time.Now().Add(time.Second * 10))
 	connection, err := quic.Listen(server, generateTLSConfig(), nil)
 	if err != nil {
 		log.Println("Error: " + err.Error())
@@ -180,6 +180,7 @@ func receiveFile(server net.PacketConn, addr string) error {
 	}
 	defer connection.Close()
 	session, err := connection.Accept()
+	server.SetReadDeadline(time.Now().Add(time.Hour*24))
 	if err != nil {
 		log.Println("Error: " + err.Error())
 		server.Close()
