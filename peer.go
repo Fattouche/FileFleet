@@ -133,7 +133,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 }
 
 func receieveFromServer(file *os.File) error {
-	notifyFrontEnd("Couldn't connect directly to peer, receiving from server... \nyou may want to exit if the file is large")
+	notifyFrontEnd("Connected through server, transfer may take longer")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
