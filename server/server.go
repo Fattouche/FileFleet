@@ -126,7 +126,7 @@ func sendToPeers(conn quic.Stream) {
 }
 
 func waitTransfer() {
-	server, err := quic.ListenAddr(":8080", generateTLSConfig(), nil)
+	server, err := quic.ListenAddr(":8081", generateTLSConfig(), nil)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		os.Exit(1)

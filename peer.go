@@ -39,6 +39,7 @@ const BUFFERSIZE = 48000
 
 // CentServerAddr used to communicate between peer and rendevouz server.
 const CentServerAddr = "18.221.47.86:8080"
+const CentServerTrans = "18.221.47.86:8081"
 
 // holePunch punches a hole through users NATs if they exist in different networks.
 func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
@@ -68,7 +69,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 func sendThroughServer(file *os.File, addr string) error {
 	notifyFrontEnd("Couldn't connect directly to peer, sending through server... \nyou may want to exit if the file is large")
 	//conn, err := net.Dial("tcp", CentServerAddr)
-	conn,err:=quic.DialAddr(CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
 	if err != nil {
 		log.Println("Couldnt connect to central server")
@@ -134,7 +135,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 func receieveFromServer(file *os.File) error {
 	notifyFrontEnd("Couldn't connect directly to peer, receiving from server... \nyou may want to exit if the file is large")
 	//conn, err := net.Dial("tcp", CentServerAddr)
-	conn,err:=quic.DialAddr(CentServerAddr, &tls.Config{InsecureSkipVerify: true}, nil)
+	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
 	defer conn.Close(err)
 	if err != nil {
 		log.Println("Couldnt connect to central server")
