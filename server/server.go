@@ -29,7 +29,7 @@ type Peer struct {
 }
 
 var peerMap map[string]*Peer
-var tcpMap map[string]net.Conn
+var connMap map[string]quic.Stream
 
 func createPeer(length int, buff []byte, publicIP string) (*Peer, error) {
 	peer := new(Peer)
@@ -88,7 +88,7 @@ func generateTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 }
 
-func sendToPeers(conn net.Conn) {
+func sendToPeers(conn quic.Stream) {
 	peer := new(Peer)
 	buff := make([]byte, 1024)
 	length, err := conn.Read(buff)
@@ -99,35 +99,28 @@ func sendToPeers(conn net.Conn) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	if _, ok := tcpMap[peer.Friend]; ok && tcpMap[peer.Friend] != nil {
-		fmt.Println("Recieved both tcp connections, copying")
-		conn2 := tcpMap[peer.Friend]
+	if _, ok := connMap[peer.Friend]; ok && connMap[peer.Friend] != nil {
+		fmt.Println("Recieved both quic connections, copying")
+		conn2 := connMap[peer.Friend]
 		defer conn2.Close()
 		defer conn.Close()
 		if peer.FileName != "" {
 			conn.Write([]byte("1"))
-			_, err := io.Copy(conn2, conn)
-			if err != nil {
-				fmt.Println("Error: ", err)
-			}
+			io.Copy(conn2, conn)
 		} else {
 			conn2.Write([]byte("1"))
-			_, err := io.Copy(conn, conn2)
-			if err != nil {
-				fmt.Println("Error: ", err)
-			}
+			io.Copy(conn, conn2)
 		}
 		fmt.Println("Finished copying!")
-		delete(tcpMap, peer.Friend)
-		delete(tcpMap, peer.Name)
+		delete(connMap, peer.Friend)
+		delete(connMap, peer.Name)
 	} else {
-		fmt.Println("Recieved tcp connection from ", conn.RemoteAddr())
-		tcpMap[peer.Name] = conn
+		connMap[peer.Name] = conn
 	}
 }
 
 func waitTransfer() {
-	server, err := net.Listen("tcp", ":8080")
+	server, err := quic.ListenAddr(":8081", generateTLSConfig(), nil)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		os.Exit(1)
@@ -137,8 +130,14 @@ func waitTransfer() {
 		connection, err := server.Accept()
 		if err != nil {
 			log.Println("Error: ", err)
+			continue
 		}
-		go sendToPeers(connection)
+		stream, err := connection.AcceptStream()
+		if err != nil {
+			log.Println("Error: ", err)
+			continue
+		}
+		go sendToPeers(stream)
 	}
 }
 
@@ -156,7 +155,7 @@ func main() {
 
 	buff := make([]byte, 1000)
 	peerMap = make(map[string]*Peer)
-	tcpMap = make(map[string]net.Conn)
+	connMap = make(map[string]quic.Stream)
 	connection, _ := quic.Listen(server, generateTLSConfig(), nil)
 
 	fmt.Println("Waiting for connections from peers")

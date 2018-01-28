@@ -35,6 +35,22 @@ type MessageOut struct {
 }
 
 func main() {
+	/*
+	peer1 := strings.ToLower(os.Args[1])
+	peer2 := strings.ToLower(os.Args[2])
+	fileName := ""
+	if len(os.Args) == 4 {
+		fileName = os.Args[3]
+	}
+	initTransfer(peer1, peer2, fileName)
+	return
+}
+
+func notifyFrontEnd(msg string){
+	return
+}
+	*/
+
 	// Init
 	flag.Parse()
 	astilog.FlagInit()
@@ -122,6 +138,9 @@ func notifyFrontEnd(msg string) {
 		})
 	} else if strings.Contains(msg, "Connected") {
 		bootstrap.SendMessage(w, "Connected", msg, func(m *bootstrap.MessageIn) {
+		})
+	} else if strings.Contains(msg, "Server") {
+			bootstrap.SendMessage(w, "Server", msg, func(m *bootstrap.MessageIn) {
 		})
 	} else {
 		bootstrap.SendMessage(w, "Error", msg, func(m *bootstrap.MessageIn) {
