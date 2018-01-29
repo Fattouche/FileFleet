@@ -1,7 +1,8 @@
-# P2P_File_Transferer
+<img src="resources/images/logo2.png" height="100">
+
 This repository was made to allow for simple and fast filetransfer without needing to upload or pay for any third party service. Since this is just used for file transfer, a peer will only connect to at most one other peer. All filetransfer logic was done using google's quic protocol and more specifically https://github.com/lucas-clemente/quic-go.
 
-![](resources/images/logo.png)
+![](resources/images/send.gif)
 
 *note - as of right now, the rendevousz server that is responsible for connecting peers is hosted on an EC2 instance. 
 

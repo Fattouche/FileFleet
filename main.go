@@ -103,8 +103,8 @@ func notifyFrontEnd(msg string){
 		WindowOptions: &astilectron.WindowOptions{
 			BackgroundColor: astilectron.PtrStr("#333"),
 			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(700),
-			Width:           astilectron.PtrInt(700),
+			Height:          astilectron.PtrInt(600),
+			Width:           astilectron.PtrInt(900),
 		},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
