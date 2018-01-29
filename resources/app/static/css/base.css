@@ -39,6 +39,7 @@ input {
 }
 
 .right {
+    background-color: #92d6db;
     text-align: center;
     float: right;
     height: 100%;
@@ -123,4 +124,9 @@ input {
 
 #error-message {
     color: red;
+}
+
+#bird {
+    text-align: center;
+    font-size: 50px;
 }
