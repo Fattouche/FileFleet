@@ -39,7 +39,6 @@ input {
 }
 
 .right {
-    background-color: #92d6db;
     text-align: center;
     float: right;
     height: 100%;
@@ -126,7 +125,19 @@ input {
     color: red;
 }
 
-#bird {
-    text-align: center;
+#title-l {
+    font-family: Lobster;
+    position: absolute;
+    right: 50%;
+    top: 3%;
+    font-size: 50px;
+}
+
+#title-r {
+    font-family: Lobster;
+    color: #333;
+    position: absolute;
+    left: 50%;
+    top: 3%;
     font-size: 50px;
 }
