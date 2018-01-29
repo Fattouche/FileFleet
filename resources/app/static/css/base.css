@@ -124,3 +124,20 @@ input {
 #error-message {
     color: red;
 }
+
+#title-l {
+    font-family: Lobster;
+    position: absolute;
+    right: 50%;
+    top: 3%;
+    font-size: 50px;
+}
+
+#title-r {
+    font-family: Lobster;
+    color: #333;
+    position: absolute;
+    left: 50%;
+    top: 3%;
+    font-size: 50px;
+}
