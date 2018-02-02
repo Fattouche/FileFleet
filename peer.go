@@ -52,7 +52,7 @@ func holePunch(server *net.UDPConn, addr *net.UDPAddr) error {
 		}
 	}()
 	buff := make([]byte, 100)
-	server.SetReadDeadline(time.Now().Add(time.Second * 1))
+	server.SetReadDeadline(time.Now().Add(time.Second * 5))
 	for {
 		_, recvAddr, err := server.ReadFromUDP(buff)
 		if err != nil {
