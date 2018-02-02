@@ -384,6 +384,10 @@ func initTransfer(peer1, peer2, filePath, directory string) {
 		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
+	server.Close()
+	time.Sleep(time.Millisecond*500)
+	addr, _ = net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
+	server, err = net.ListenUDP("udp", addr)
 	err = transferFile(server)
 	if err != nil {
 		log.Println("Error :" + err.Error())
