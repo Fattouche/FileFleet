@@ -384,6 +384,7 @@ func initTransfer(peer1, peer2, filePath, directory string) {
 		notifyFrontEnd("Couldn't establish a connection, please try again!")
 		return
 	}
+	//quic closes udp connection automatically, need to re-establish to communicate with peer
 	server.Close()
 	time.Sleep(time.Millisecond*500)
 	addr, _ = net.ResolveUDPAddr("udp", myPeerInfo.PrivIP)
