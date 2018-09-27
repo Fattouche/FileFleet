@@ -71,7 +71,7 @@ func sendThroughServer(file *os.File, addr string) error {
 	notifyFrontEnd("Server")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
-	defer conn.Close(err)
+	defer conn.Close()
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
@@ -113,7 +113,7 @@ func sendFile(server net.PacketConn, file *os.File, addr string) error {
 		err := sendThroughServer(file, addr)
 		return err
 	}
-	defer session.Close(err)
+	defer session.Close()
 	stream, err := session.OpenStreamSync()
 	defer stream.Close()
 
@@ -137,7 +137,7 @@ func receieveFromServer(file *os.File) error {
 	notifyFrontEnd("Server")
 	//conn, err := net.Dial("tcp", CentServerAddr)
 	conn,err:=quic.DialAddr(CentServerTrans, &tls.Config{InsecureSkipVerify: true}, nil)
-	defer conn.Close(err)
+	defer conn.Close()
 	if err != nil {
 		log.Println("Couldnt connect to central server")
 		notifyFrontEnd("We are experiencing network problems, try again later.")
@@ -188,7 +188,7 @@ func receiveFile(server net.PacketConn, addr string) error {
 		err := receieveFromServer(newFile)
 		return err
 	}
-	defer session.Close(err)
+	defer session.Close()
 
 	stream, err := session.AcceptStream()
 	if err != nil {
@@ -277,7 +277,7 @@ func getPeerInfo(server *net.UDPConn) error {
 		log.Println("Error:" + err.Error())
 		return err
 	}
-	defer session.Close(err)
+	defer session.Close()
 	stream, err := session.OpenStreamSync()
 	if err != nil {
 		log.Println("Error:" + err.Error())

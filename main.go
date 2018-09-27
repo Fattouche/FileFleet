@@ -66,7 +66,6 @@ func notifyFrontEnd(msg string){
 			AppIconDefaultPath: "resources/images/icon.png",
 		},
 		Debug:    *debug,
-		Homepage: "index.html",
 		MenuOptions: []*astilectron.MenuItemOptions{{
 			Label: astilectron.PtrStr("File"),
 			SubMenu: []*astilectron.MenuItemOptions{
@@ -89,8 +88,8 @@ func notifyFrontEnd(msg string){
 				{Role: astilectron.MenuItemRoleClose},
 			},
 		}},
-		OnWait: func(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-			w = iw
+		OnWait: func(_ *astilectron.Astilectron, ws[] *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+			w = ws[0]
 			go func() {
 				if err := bootstrap.SendMessage(w, "check.out.menu", "WE ARE SENDING"); err != nil {
 					astilog.Error(errors.Wrap(err, "sending check.out.menu event failed"))
@@ -98,14 +97,17 @@ func notifyFrontEnd(msg string){
 			}()
 			return nil
 		},
-		MessageHandler: handleMessages,
 		RestoreAssets:  RestoreAssets,
-		WindowOptions: &astilectron.WindowOptions{
-			BackgroundColor: astilectron.PtrStr("#333"),
-			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(600),
-			Width:           astilectron.PtrInt(900),
-		},
+		Windows: []*bootstrap.Window{{
+				Homepage:       "index.html",
+				MessageHandler: handleMessages,
+				Options: &astilectron.WindowOptions{
+					BackgroundColor: astilectron.PtrStr("#333"),
+					Center:          astilectron.PtrBool(true),
+					Height:          astilectron.PtrInt(600),
+					Width:           astilectron.PtrInt(900),
+				},
+		}},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
